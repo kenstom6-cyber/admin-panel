@@ -1,5 +1,4 @@
-[file name]: database.js
-[file content begin]
+// database.js
 const sqlite3 = require('sqlite3').verbose();
 const path = require('path');
 const bcrypt = require('bcryptjs');
@@ -345,4 +344,3 @@ module.exports = {
     // Statistics
     getStats
 };
-[file content end]
