@@ -9,67 +9,103 @@ const db = new sqlite3.Database(dbPath, (err) => {
         console.error('❌ Không thể kết nối database:', err.message);
     } else {
         console.log('✅ Đã kết nối tới SQLite database.');
-        initializeDatabase();
+        // Không gọi initializeDatabase ở đây nữa
     }
 });
 
-// Khởi tạo database
+// Hàm khởi tạo database (phải được gọi từ server.js)
 async function initializeDatabase() {
-    // Tạo bảng admin users
-    db.run(`CREATE TABLE IF NOT EXISTS admin_users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        username TEXT UNIQUE NOT NULL,
-        password_hash TEXT NOT NULL,
-        email TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        last_login DATETIME
-    )`);
-
-    // Tạo bảng keys với nhiều trường thông tin hơn
-    db.run(`CREATE TABLE IF NOT EXISTS keys (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key TEXT UNIQUE NOT NULL,
-        key_type TEXT DEFAULT 'api_key',
-        owner TEXT,
-        description TEXT,
-        status TEXT DEFAULT 'active',
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        expires_at DATETIME,
-        last_used DATETIME,
-        usage_count INTEGER DEFAULT 0,
-        usage_limit INTEGER DEFAULT 0,
-        ip_whitelist TEXT,
-        metadata TEXT
-    )`);
-
-    // Tạo bảng logs
-    db.run(`CREATE TABLE IF NOT EXISTS key_logs (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        key_id INTEGER,
-        action TEXT,
-        details TEXT,
-        ip_address TEXT,
-        user_agent TEXT,
-        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY (key_id) REFERENCES keys(id)
-    )`);
-
-    // Tạo admin mặc định nếu chưa có
-    const adminExists = await db.asyncGet("SELECT COUNT(*) as count FROM admin_users");
-    if (adminExists.count === 0) {
-        const defaultPassword = await bcrypt.hash('admin123', 10);
-        db.run(
-            "INSERT INTO admin_users (username, password_hash, email) VALUES (?, ?, ?)",
-            ['admin', defaultPassword, 'admin@example.com'],
-            (err) => {
-                if (err) console.error('Lỗi tạo admin:', err);
-                else console.log('✅ Đã tạo admin mặc định: admin / admin123');
+    return new Promise((resolve, reject) => {
+        // Tạo bảng admin_users trước
+        db.run(`CREATE TABLE IF NOT EXISTS admin_users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE NOT NULL,
+            password_hash TEXT NOT NULL,
+            email TEXT,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            last_login DATETIME
+        )`, async (err) => {
+            if (err) {
+                console.error('❌ Lỗi tạo bảng admin_users:', err.message);
+                reject(err);
+                return;
             }
-        );
-    }
+            console.log('✅ Bảng admin_users đã sẵn sàng');
+            
+            // Tạo bảng keys
+            db.run(`CREATE TABLE IF NOT EXISTS keys (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                key TEXT UNIQUE NOT NULL,
+                key_type TEXT DEFAULT 'api_key',
+                owner TEXT,
+                description TEXT,
+                status TEXT DEFAULT 'active',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                expires_at DATETIME,
+                last_used DATETIME,
+                usage_count INTEGER DEFAULT 0,
+                usage_limit INTEGER DEFAULT 0,
+                ip_whitelist TEXT,
+                metadata TEXT
+            )`, (err) => {
+                if (err) {
+                    console.error('❌ Lỗi tạo bảng keys:', err.message);
+                    reject(err);
+                    return;
+                }
+                console.log('✅ Bảng keys đã sẵn sàng');
+                
+                // Tạo bảng logs
+                db.run(`CREATE TABLE IF NOT EXISTS key_logs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    key_id INTEGER,
+                    action TEXT,
+                    details TEXT,
+                    ip_address TEXT,
+                    user_agent TEXT,
+                    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (key_id) REFERENCES keys(id)
+                )`, async (err) => {
+                    if (err) {
+                        console.error('❌ Lỗi tạo bảng key_logs:', err.message);
+                        reject(err);
+                        return;
+                    }
+                    console.log('✅ Bảng key_logs đã sẵn sàng');
+                    
+                    // Tạo admin mặc định nếu chưa có
+                    try {
+                        const adminExists = await db.asyncGet("SELECT COUNT(*) as count FROM admin_users");
+                        if (adminExists.count === 0) {
+                            const defaultPassword = await bcrypt.hash('admin123', 10);
+                            db.run(
+                                "INSERT INTO admin_users (username, password_hash, email) VALUES (?, ?, ?)",
+                                ['admin', defaultPassword, 'admin@example.com'],
+                                (err) => {
+                                    if (err) {
+                                        console.error('❌ Lỗi tạo admin:', err.message);
+                                        reject(err);
+                                    } else {
+                                        console.log('✅ Đã tạo admin mặc định: admin / admin123');
+                                        resolve();
+                                    }
+                                }
+                            );
+                        } else {
+                            console.log('✅ Admin đã tồn tại');
+                            resolve();
+                        }
+                    } catch (err) {
+                        console.error('❌ Lỗi kiểm tra admin:', err.message);
+                        reject(err);
+                    }
+                });
+            });
+        });
+    });
 }
 
-// Hàm trợ giúp Promise
+// Hàm trợ giúp Promise (giữ nguyên)
 db.asyncRun = (sql, params = []) => {
     return new Promise((resolve, reject) => {
         db.run(sql, params, function(err) {
@@ -97,15 +133,15 @@ db.asyncGet = (sql, params = []) => {
     });
 };
 
-// Hàm tạo key tự động
+// Hàm tạo key tự động (giữ nguyên)
 db.generateKey = (prefix = 'KEY', length = 24) => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    const randomPart = Array.from({ length: length - prefix.length }, 
+    const randomPart = Array.from({ length: length - prefix.length - 1 }, 
         () => chars.charAt(Math.floor(Math.random() * chars.length))).join('');
     return `${prefix}_${randomPart}`;
 };
 
-// Hàm log actions
+// Hàm log actions (giữ nguyên)
 db.logAction = (keyId, action, details = {}, ip = '', userAgent = '') => {
     return db.asyncRun(
         "INSERT INTO key_logs (key_id, action, details, ip_address, user_agent) VALUES (?, ?, ?, ?, ?)",
@@ -113,4 +149,4 @@ db.logAction = (keyId, action, details = {}, ip = '', userAgent = '') => {
     );
 };
 
-module.exports = db;
+module.exports = { db, initializeDatabase };
