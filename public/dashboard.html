@@ -784,3 +784,299 @@ fi</pre>
                     headers: {
                         'Content-Type': 'application/json'
                     },
+// ========== HELPER FUNCTIONS ==========
+function getStatusClass(status) {
+    switch (status) {
+        case 'active': return 'status-active';
+        case 'locked': return 'status-locked';
+        case 'expired': return 'status-expired';
+        default: return 'status-locked';
+    }
+}
+
+function getStatusText(status) {
+    switch (status) {
+        case 'active': return 'Active';
+        case 'locked': return 'Locked';
+        case 'expired': return 'Expired';
+        default: return 'Unknown';
+    }
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text)
+        .then(() => showNotification('✅ Key đã được copy vào clipboard', 'success'))
+        .catch(err => showNotification('❌ Lỗi copy key', 'error'));
+}
+
+// ========== TAB MANAGEMENT ==========
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-btn').forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('onclick').includes(tabName)) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // Update tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        content.classList.remove('active');
+        if (content.id === 'tab' + capitalizeFirstLetter(tabName)) {
+            content.classList.add('active');
+        }
+    });
+    
+    currentTab = tabName;
+    
+    // Load data for specific tabs if needed
+    if (tabName === 'server') {
+        loadServerKeys();
+    } else if (tabName === 'user') {
+        loadUserKeys();
+    }
+}
+
+function capitalizeFirstLetter(string) {
+    return string.charAt(0).toUpperCase() + string.slice(1);
+}
+
+// ========== INITIALIZATION ==========
+async function initDashboard() {
+    // Check login first
+    if (!checkLogin()) return;
+    
+    // Show loading screen for 2 seconds (simulate loading)
+    setTimeout(async () => {
+        // Hide loading screen
+        document.getElementById('loadingScreen').style.display = 'none';
+        
+        // Show main content
+        document.getElementById('mainContent').style.display = 'block';
+        
+        // Load all data
+        await Promise.all([
+            loadStats(),
+            loadServerKeys(),
+            loadUserKeys()
+        ]);
+        
+        // Update username from localStorage
+        const savedUsername = localStorage.getItem('admin_username');
+        if (savedUsername) {
+            document.getElementById('username').textContent = savedUsername;
+        }
+        
+        showNotification('✅ Dashboard đã được tải', 'success');
+    }, 2000);
+}
+
+// Thêm hàm deleteKey còn thiếu
+async function deleteKey(id, type) {
+    if (!confirm(`Xóa ${type} key này? Hành động này không thể hoàn tác!`)) return;
+    
+    try {
+        const endpoint = type === 'server' ? `/api/server-key/${id}` : `/api/user-key/${id}`;
+        const response = await fetch(endpoint, { 
+            method: 'DELETE'
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('✅ Key đã được xóa', 'success');
+            
+            // Reload data
+            if (type === 'server') {
+                await loadServerKeys();
+            } else {
+                await loadUserKeys();
+            }
+            
+            await loadStats();
+        } else {
+            showNotification('❌ ' + (data.error || 'Failed to delete key'), 'error');
+        }
+    } catch (error) {
+        console.error('Error deleting key:', error);
+        showNotification('❌ Lỗi xóa key', 'error');
+    }
+}
+
+// Thêm hàm cập nhật thống kê
+function updateStats() {
+    // Tính toán total usage
+    const totalUsage = [...serverKeys, ...userKeys].reduce((sum, key) => {
+        return sum + (key.usage_count || 0);
+    }, 0);
+    
+    // Tính toán active keys
+    const activeKeys = [...serverKeys, ...userKeys].filter(key => 
+        key.status === 'active' && 
+        (!key.expires_at || new Date(key.expires_at) > new Date())
+    ).length;
+    
+    document.getElementById('totalUsage').textContent = totalUsage;
+    document.getElementById('activeKeys').textContent = activeKeys;
+}
+
+// Sửa lại hàm loadStats để gọi updateStats
+async function loadStats() {
+    try {
+        const response = await fetch('/api/stats');
+        const data = await response.json();
+        
+        if (data.success) {
+            document.getElementById('serverKeysCount').textContent = data.stats.server_keys || 0;
+            document.getElementById('userKeysCount').textContent = data.stats.user_keys || 0;
+            
+            // Tính toán các thống kê khác
+            updateStats();
+        }
+    } catch (error) {
+        console.error('Error loading stats:', error);
+        // Hiển thị giá trị mặc định
+        document.getElementById('serverKeysCount').textContent = serverKeys.length;
+        document.getElementById('userKeysCount').textContent = userKeys.length;
+        updateStats();
+    }
+}
+
+// Sửa lại render functions để gọi updateStats
+function renderServerKeys() {
+    const tbody = document.getElementById('serverKeysBody');
+    
+    if (!serverKeys || serverKeys.length === 0) {
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                    <i class="fas fa-server" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
+                    <p>Chưa có server key nào</p>
+                    <p style="font-size: 14px; margin-top: 5px;">Tạo server key đầu tiên của bạn</p>
+                </td>
+            </tr>
+        `;
+        updateStats();
+        return;
+    }
+    
+    let html = '';
+    serverKeys.forEach(key => {
+        const statusClass = getStatusClass(key.status);
+        const statusText = getStatusText(key.status);
+        const isExpired = key.expires_at && new Date(key.expires_at) < new Date();
+        const finalStatus = isExpired ? 'expired' : key.status;
+        
+        html += `
+            <tr>
+                <td>${key.id}</td>
+                <td>
+                    <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
+                          onclick="copyToClipboard('${key.key}')"
+                          title="Click để copy">
+                        ${key.key.substring(0, 12)}...
+                    </code>
+                </td>
+                <td>${key.name || '-'}</td>
+                <td>
+                    <span class="status-badge ${getStatusClass(finalStatus)}">
+                        ${getStatusText(finalStatus)}
+                    </span>
+                </td>
+                <td>${key.usage_count || 0}</td>
+                <td>${key.expires_at ? new Date(key.expires_at).toLocaleDateString('vi-VN') : 'Never'}</td>
+                <td>
+                    <button class="action-btn" onclick="resetKey(${key.id}, 'server')" title="Reset">
+                        <i class="fas fa-redo" style="color: #10b981;"></i>
+                    </button>
+                    <button class="action-btn" onclick="lockKey(${key.id}, 'server')" title="${key.status === 'locked' ? 'Unlock' : 'Lock'}">
+                        <i class="fas ${key.status === 'locked' ? 'fa-unlock' : 'fa-lock'}" style="color: #f59e0b;"></i>
+                    </button>
+                    <button class="action-btn" onclick="deleteKey(${key.id}, 'server')" title="Delete">
+                        <i class="fas fa-trash" style="color: #ef4444;"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+    });
+    
+    tbody.innerHTML = html;
+    updateStats();
+}
+
+// Thêm hàm unlockKey
+async function unlockKey(id, type) {
+    try {
+        const response = await fetch(`/api/server-key/${id}/unlock`, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('✅ Key đã được mở khóa', 'success');
+            await loadServerKeys();
+            await loadStats();
+        }
+    } catch (error) {
+        showNotification('❌ Lỗi mở khóa key', 'error');
+    }
+}
+
+// Sửa hàm lockKey để hỗ trợ toggle lock/unlock
+async function lockKey(id, type) {
+    try {
+        const key = serverKeys.find(k => k.id === id);
+        if (!key) return;
+        
+        const action = key.status === 'locked' ? 'unlock' : 'lock';
+        const endpoint = `/api/server-key/${id}/${action}`;
+        
+        const response = await fetch(endpoint, { method: 'POST' });
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification(`✅ Key đã được ${action === 'lock' ? 'khóa' : 'mở khóa'}`, 'success');
+            await loadServerKeys();
+            await loadStats();
+        }
+    } catch (error) {
+        showNotification('❌ Lỗi thao tác với key', 'error');
+    }
+}
+
+// Thêm hàm refresh data
+async function refreshAllData() {
+    showNotification('🔄 Đang làm mới dữ liệu...', 'info');
+    await Promise.all([
+        loadStats(),
+        loadServerKeys(),
+        loadUserKeys()
+    ]);
+    showNotification('✅ Dữ liệu đã được làm mới', 'success');
+}
+
+// Thêm nút refresh trên navbar (thêm vào HTML)
+// Thêm vào sau .user-info trong navbar:
+/*
+<div style="display: flex; align-items: center; gap: 10px;">
+    <button onclick="refreshAllData()" style="background: none; border: none; cursor: pointer; color: #667eea; padding: 5px;">
+        <i class="fas fa-sync-alt"></i>
+    </button>
+</div>
+*/
+
+// ========== START DASHBOARD ==========
+// Chạy khi trang được tải
+document.addEventListener('DOMContentLoaded', initDashboard);
+
+// Thêm phím tắt
+document.addEventListener('keydown', (e) => {
+    // Ctrl + R để refresh
+    if (e.ctrlKey && e.key === 'r') {
+        e.preventDefault();
+        refreshAllData();
+    }
+    
+    // Escape để đóng notification
+    if (e.key === 'Escape') {
+        document.querySelectorAll('.notification').forEach(n => n.remove());
+    }
+});
