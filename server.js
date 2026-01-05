@@ -2,346 +2,409 @@ require('dotenv').config();
 const express = require('express');
 const bcrypt = require('bcryptjs');
 const path = require('path');
+const { initializeDatabase, db } = require('./database');
 
 const app = express();
 const PORT = process.env.PORT || 10000;
 
-// Middleware đơn giản
+// Middleware
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static('public'));
 
-// ========== DATABASE ĐƠN GIẢN ==========
-const sqlite3 = require('sqlite3').verbose();
-const dbPath = path.join(__dirname, 'database.db');
-const db = new sqlite3.Database(dbPath);
-
-// Helper functions đơn giản
-function dbRun(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.run(sql, params, function(err) {
-            if (err) reject(err);
-            else resolve(this);
-        });
-    });
-}
-
-function dbAll(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.all(sql, params, (err, rows) => {
-            if (err) reject(err);
-            else resolve(rows);
-        });
-    });
-}
-
-function dbGet(sql, params = []) {
-    return new Promise((resolve, reject) => {
-        db.get(sql, params, (err, row) => {
-            if (err) reject(err);
-            else resolve(row);
-        });
-    });
-}
-
-// ========== KHỞI TẠO DATABASE ==========
-async function initDatabase() {
-    console.log('🔄 Khởi tạo database...');
-    
-    try {
-        // Tạo bảng admin (đơn giản)
-        await dbRun(`CREATE TABLE IF NOT EXISTS admin_users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL
-        )`);
-        
-        // Tạo bảng keys (đơn giản)
-        await dbRun(`CREATE TABLE IF NOT EXISTS keys (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            key TEXT UNIQUE NOT NULL,
-            owner TEXT,
-            status TEXT DEFAULT 'active',
-            usage_count INTEGER DEFAULT 0,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-        )`);
-        
-        // Kiểm tra admin
-        const adminCheck = await dbGet("SELECT COUNT(*) as count FROM admin_users WHERE username = 'admin'");
-        
-        if (adminCheck.count === 0) {
-            const hashedPassword = await bcrypt.hash('admin123', 10);
-            await dbRun(
-                "INSERT INTO admin_users (username, password_hash) VALUES (?, ?)",
-                ['admin', hashedPassword]
-            );
-            console.log('✅ Đã tạo admin: admin / admin123');
-        }
-        
-        console.log('✅ Database ready');
-        return true;
-    } catch (error) {
-        console.error('❌ Database error:', error);
-        return false;
-    }
-}
-
-// ========== SIMPLE AUTH SYSTEM ==========
-// Sử dụng localStorage để lưu trạng thái đăng nhập (đơn giản nhất)
-
-// Middleware kiểm tra đăng nhập (chỉ cho API)
-function checkAuth(req, res, next) {
-    // Với demo, chúng ta sẽ trust client (đơn giản)
-    // Trong thực tế cần token hoặc session
-    const authHeader = req.headers['authorization'];
-    
-    if (!authHeader || !authHeader.startsWith('Basic ')) {
-        return res.status(401).json({ error: 'Chưa đăng nhập' });
-    }
-    
-    // Đơn giản: chỉ kiểm tra nếu header có "admin"
-    if (authHeader.includes('admin')) {
-        next();
-    } else {
-        res.status(401).json({ error: 'Chưa đăng nhập' });
-    }
-}
-
-// ========== ROUTES ==========
-
-// Trang chủ
+// ========== ROUTES CƠ BẢN ==========
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
 
-// Dashboard
 app.get('/dashboard', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'dashboard.html'));
 });
 
-// ========== API ROUTES ==========
+// ========== SERVER KEY API ==========
+// Tạo và quản lý Server Keys cho Android Shell
 
-// Health check
-app.get('/api/health', (req, res) => {
-    res.json({
-        status: 'online',
-        timestamp: new Date().toISOString(),
-        message: 'Admin Key Panel đang hoạt động'
-    });
-});
-
-// Login API (đơn giản)
-app.post('/api/login', async (req, res) => {
+// API: Generate Server Key
+app.post('/api/server-key/generate', async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const { name, description, expires_in_days = 30 } = req.body;
         
-        console.log('Login attempt:', username);
+        // Tạo Server Key đặc biệt
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const serverKey = 'SRV_' + Array.from({ length: 24 }, () => 
+            chars.charAt(Math.floor(Math.random() * chars.length))).join('');
         
-        if (!username || !password) {
-            return res.status(400).json({ error: 'Vui lòng nhập username và password' });
-        }
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(expires_in_days));
         
-        const user = await dbGet(
-            "SELECT * FROM admin_users WHERE username = ?",
-            [username]
-        );
-        
-        if (!user) {
-            return res.status(401).json({ error: 'Tài khoản không tồn tại' });
-        }
-        
-        const isValid = await bcrypt.compare(password, user.password_hash);
-        
-        if (!isValid) {
-            return res.status(401).json({ error: 'Mật khẩu không đúng' });
-        }
-        
-        console.log('✅ Login successful:', username);
-        
-        // Trả về success - client sẽ lưu vào localStorage
-        res.json({
-            success: true,
-            user: {
-                id: user.id,
-                username: user.username
-            },
-            message: 'Đăng nhập thành công'
-        });
-        
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ error: 'Lỗi server' });
-    }
-});
-
-// Logout API
-app.post('/api/logout', (req, res) => {
-    res.json({ success: true, message: 'Đăng xuất thành công' });
-});
-
-// Get all keys (cần đăng nhập)
-app.get('/api/keys', checkAuth, async (req, res) => {
-    try {
-        const keys = await dbAll(
-            "SELECT * FROM keys ORDER BY created_at DESC"
+        const result = await db.run(
+            `INSERT INTO server_keys (key, name, description, expires_at) 
+             VALUES (?, ?, ?, ?)`,
+            [serverKey, name || null, description || null, expiresAt.toISOString()]
         );
         
         res.json({
             success: true,
-            keys: keys
+            server_key: serverKey,
+            key_id: result.lastID,
+            expires_at: expiresAt,
+            message: 'Server Key đã được tạo'
         });
+        
+    } catch (error) {
+        console.error('Generate server key error:', error);
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API: Get all Server Keys
+app.get('/api/server-keys', async (req, res) => {
+    try {
+        const keys = await db.all(`
+            SELECT * FROM server_keys 
+            ORDER BY created_at DESC
+        `);
+        
+        res.json({ success: true, keys });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Create key (cần đăng nhập)
-app.post('/api/keys', checkAuth, async (req, res) => {
+// API: Validate Server Key (cho Android Shell)
+app.get('/api/server/validate/:key', async (req, res) => {
     try {
-        const { key, owner } = req.body;
+        const serverKey = req.params.key;
         
-        if (!key) {
-            return res.status(400).json({ error: 'Key là bắt buộc' });
-        }
-        
-        // Nếu không có key, tạo random
-        let finalKey = key;
-        if (!finalKey || finalKey === 'auto') {
-            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-            finalKey = 'KEY_' + Array.from({ length: 16 }, () => 
-                chars.charAt(Math.floor(Math.random() * chars.length))).join('');
-        }
-        
-        const result = await dbRun(
-            "INSERT INTO keys (key, owner) VALUES (?, ?)",
-            [finalKey, owner || null]
-        );
-        
-        const newKey = await dbGet(
-            "SELECT * FROM keys WHERE id = ?",
-            [result.lastID]
-        );
-        
-        res.json({
-            success: true,
-            key: newKey,
-            message: 'Key đã được tạo'
-        });
-    } catch (error) {
-        if (error.message.includes('UNIQUE')) {
-            res.status(400).json({ error: 'Key đã tồn tại' });
-        } else {
-            res.status(500).json({ error: error.message });
-        }
-    }
-});
-
-// Reset key
-app.post('/api/keys/:id/reset', checkAuth, async (req, res) => {
-    try {
-        await dbRun(
-            "UPDATE keys SET status = 'active', usage_count = 0 WHERE id = ?",
-            [req.params.id]
-        );
-        
-        res.json({ success: true, message: 'Key đã reset' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Lock key
-app.post('/api/keys/:id/lock', checkAuth, async (req, res) => {
-    try {
-        await dbRun(
-            "UPDATE keys SET status = 'locked' WHERE id = ?",
-            [req.params.id]
-        );
-        
-        res.json({ success: true, message: 'Key đã khóa' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Delete key
-app.delete('/api/keys/:id', checkAuth, async (req, res) => {
-    try {
-        await dbRun(
-            "UPDATE keys SET status = 'deleted' WHERE id = ?",
-            [req.params.id]
-        );
-        
-        res.json({ success: true, message: 'Key đã xóa' });
-    } catch (error) {
-        res.status(500).json({ error: error.message });
-    }
-});
-
-// Public API cho Android Shell
-app.get('/api/validate/:key', async (req, res) => {
-    try {
-        const key = req.params.key;
-        const keyData = await dbGet(
-            "SELECT * FROM keys WHERE key = ? AND status = 'active'",
-            [key]
-        );
+        const keyData = await db.get(`
+            SELECT * FROM server_keys 
+            WHERE key = ? 
+            AND status = 'active'
+            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        `, [serverKey]);
         
         if (!keyData) {
-            return res.json({ 
-                valid: false, 
-                error: 'Key không hợp lệ' 
+            return res.json({
+                valid: false,
+                error: 'Server Key không hợp lệ hoặc đã hết hạn'
             });
         }
         
-        // Tăng lượt dùng
-        await dbRun(
-            "UPDATE keys SET usage_count = usage_count + 1 WHERE id = ?",
+        // Tăng lượt sử dụng
+        await db.run(
+            `UPDATE server_keys 
+             SET last_used = CURRENT_TIMESTAMP, 
+                 usage_count = usage_count + 1 
+             WHERE id = ?`,
             [keyData.id]
         );
         
         res.json({
             valid: true,
-            key: {
+            server: {
                 id: keyData.id,
-                owner: keyData.owner,
-                usage_count: keyData.usage_count + 1
+                name: keyData.name,
+                usage_count: keyData.usage_count + 1,
+                expires_at: keyData.expires_at
             }
         });
+        
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
 
-// Get key info
-app.get('/api/key/:key', async (req, res) => {
+// API: Revoke Server Key
+app.post('/api/server-key/:id/revoke', async (req, res) => {
     try {
-        const keyData = await dbGet(
-            "SELECT id, key, owner, status, usage_count FROM keys WHERE key = ?",
-            [req.params.key]
+        await db.run(
+            "UPDATE server_keys SET status = 'revoked' WHERE id = ?",
+            [req.params.id]
         );
         
-        if (!keyData) {
-            return res.status(404).json({ error: 'Key không tồn tại' });
-        }
-        
-        res.json({ success: true, key: keyData });
+        res.json({ success: true, message: 'Server Key đã bị thu hồi' });
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
+});
+
+// ========== USER KEY API ==========
+// API cho các keys thông thường
+
+// API: Get all user keys
+app.get('/api/user-keys', async (req, res) => {
+    try {
+        const keys = await db.all(`
+            SELECT * FROM user_keys 
+            ORDER BY created_at DESC
+        `);
+        
+        res.json({ success: true, keys });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API: Generate User Key
+app.post('/api/user-key/generate', async (req, res) => {
+    try {
+        const { user_id, device, expires_in_days = 7 } = req.body;
+        
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        const userKey = 'USR_' + Array.from({ length: 20 }, () => 
+            chars.charAt(Math.floor(Math.random() * chars.length))).join('');
+        
+        const expiresAt = new Date();
+        expiresAt.setDate(expiresAt.getDate() + parseInt(expires_in_days));
+        
+        const result = await db.run(
+            `INSERT INTO user_keys (key, user_id, device, expires_at) 
+             VALUES (?, ?, ?, ?)`,
+            [userKey, user_id || null, device || null, expiresAt.toISOString()]
+        );
+        
+        res.json({
+            success: true,
+            user_key: userKey,
+            key_id: result.lastID,
+            expires_at: expiresAt
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// API: Validate User Key
+app.get('/api/user/validate/:key', async (req, res) => {
+    try {
+        const userKey = req.params.key;
+        
+        const keyData = await db.get(`
+            SELECT * FROM user_keys 
+            WHERE key = ? 
+            AND status = 'active'
+            AND (expires_at IS NULL OR expires_at > CURRENT_TIMESTAMP)
+        `, [userKey]);
+        
+        if (!keyData) {
+            return res.json({
+                valid: false,
+                error: 'User Key không hợp lệ'
+            });
+        }
+        
+        await db.run(
+            `UPDATE user_keys 
+             SET last_used = CURRENT_TIMESTAMP, 
+                 usage_count = usage_count + 1 
+             WHERE id = ?`,
+            [keyData.id]
+        );
+        
+        res.json({
+            valid: true,
+            user: {
+                id: keyData.id,
+                user_id: keyData.user_id,
+                device: keyData.device,
+                usage_count: keyData.usage_count + 1
+            }
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ========== ADMIN AUTH API ==========
+app.post('/api/admin/login', async (req, res) => {
+    try {
+        const { username, password } = req.body;
+        
+        console.log('Admin login attempt:', username);
+        
+        if (!username || !password) {
+            return res.status(400).json({ error: 'Vui lòng nhập đầy đủ' });
+        }
+        
+        const admin = await db.get(
+            "SELECT * FROM admins WHERE username = ?",
+            [username]
+        );
+        
+        if (!admin) {
+            return res.status(401).json({ error: 'Tài khoản không tồn tại' });
+        }
+        
+        const isValid = await bcrypt.compare(password, admin.password_hash);
+        
+        if (!isValid) {
+            return res.status(401).json({ error: 'Mật khẩu không đúng' });
+        }
+        
+        // Update last login
+        await db.run(
+            "UPDATE admins SET last_login = CURRENT_TIMESTAMP WHERE id = ?",
+            [admin.id]
+        );
+        
+        res.json({
+            success: true,
+            admin: {
+                id: admin.id,
+                username: admin.username,
+                role: admin.role
+            }
+        });
+        
+    } catch (error) {
+        console.error('Admin login error:', error);
+        res.status(500).json({ error: 'Lỗi server' });
+    }
+});
+
+// ========== KEY MANAGEMENT API ==========
+// Reset Key
+app.post('/api/key/:id/reset', async (req, res) => {
+    try {
+        const { key_type = 'user' } = req.body;
+        const table = key_type === 'server' ? 'server_keys' : 'user_keys';
+        
+        await db.run(
+            `UPDATE ${table} 
+             SET status = 'active', 
+                 usage_count = 0, 
+                 last_used = NULL 
+             WHERE id = ?`,
+            [req.params.id]
+        );
+        
+        res.json({ success: true, message: 'Key đã được reset' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Lock Key
+app.post('/api/key/:id/lock', async (req, res) => {
+    try {
+        const { key_type = 'user' } = req.body;
+        const table = key_type === 'server' ? 'server_keys' : 'user_keys';
+        
+        await db.run(
+            `UPDATE ${table} SET status = 'locked' WHERE id = ?`,
+            [req.params.id]
+        );
+        
+        res.json({ success: true, message: 'Key đã bị khóa' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// Delete Key
+app.delete('/api/key/:id', async (req, res) => {
+    try {
+        const { key_type = 'user' } = req.body;
+        const table = key_type === 'server' ? 'server_keys' : 'user_keys';
+        
+        await db.run(
+            `UPDATE ${table} SET status = 'deleted' WHERE id = ?`,
+            [req.params.id]
+        );
+        
+        res.json({ success: true, message: 'Key đã bị xóa' });
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ========== STATISTICS API ==========
+app.get('/api/stats', async (req, res) => {
+    try {
+        const [serverStats, userStats] = await Promise.all([
+            db.all(`
+                SELECT 
+                    status,
+                    COUNT(*) as count,
+                    SUM(usage_count) as total_usage
+                FROM server_keys 
+                GROUP BY status
+            `),
+            db.all(`
+                SELECT 
+                    status,
+                    COUNT(*) as count,
+                    SUM(usage_count) as total_usage
+                FROM user_keys 
+                GROUP BY status
+            `)
+        ]);
+        
+        const totalStats = await db.get(`
+            SELECT 
+                (SELECT COUNT(*) FROM server_keys) as total_server_keys,
+                (SELECT COUNT(*) FROM user_keys) as total_user_keys,
+                (SELECT SUM(usage_count) FROM server_keys) as server_total_usage,
+                (SELECT SUM(usage_count) FROM user_keys) as user_total_usage
+        `);
+        
+        res.json({
+            success: true,
+            server_stats: serverStats,
+            user_stats: userStats,
+            total: totalStats
+        });
+        
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
+
+// ========== HEALTH CHECK ==========
+app.get('/api/health', (req, res) => {
+    res.json({
+        status: 'online',
+        timestamp: new Date().toISOString(),
+        version: '2.0.0',
+        endpoints: {
+            server_validate: 'GET /api/server/validate/:key',
+            user_validate: 'GET /api/user/validate/:key',
+            generate_server_key: 'POST /api/server-key/generate',
+            generate_user_key: 'POST /api/user-key/generate'
+        }
+    });
 });
 
 // ========== START SERVER ==========
 async function startServer() {
-    await initDatabase();
-    
-    app.listen(PORT, () => {
-        console.log(`🚀 Server đang chạy: http://localhost:${PORT}`);
-        console.log(`🌐 Public URL: https://admin-panel-nxvh.onrender.com`);
-        console.log(`🔑 Admin: admin / admin123`);
-        console.log(`📱 API: GET /api/validate/{key}`);
-        console.log(`💡 Đơn giản & Ổn định`);
-    });
+    try {
+        await initializeDatabase();
+        
+        app.listen(PORT, () => {
+            console.log('='.repeat(50));
+            console.log('🚀 ADMIN KEY PANEL SERVER');
+            console.log('='.repeat(50));
+            console.log(`📡 Port: ${PORT}`);
+            console.log(`🌐 URL: https://admin-panel-nxvh.onrender.com`);
+            console.log(`🔐 Admin: admin / admin123`);
+            console.log('');
+            console.log('📊 API ENDPOINTS:');
+            console.log('├─ Server Key Validate: GET /api/server/validate/:key');
+            console.log('├─ User Key Validate:   GET /api/user/validate/:key');
+            console.log('├─ Generate Server Key: POST /api/server-key/generate');
+            console.log('├─ Generate User Key:   POST /api/user-key/generate');
+            console.log('├─ Get Stats:           GET /api/stats');
+            console.log('└─ Health Check:        GET /api/health');
+            console.log('');
+            console.log('✅ Server is ready!');
+        });
+        
+    } catch (error) {
+        console.error('❌ Server startup failed:', error);
+        process.exit(1);
+    }
 }
 
 startServer();
