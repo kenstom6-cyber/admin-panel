@@ -3,214 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Admin Key Panel</title>
+    <title>Dashboard - Key Management System</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { 
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-            background: #f5f5f5;
-            color: #333;
+        .sidebar {
+            transition: all 0.3s ease;
         }
-        .navbar {
-            background: white;
-            padding: 0 20px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            z-index: 1000;
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
         }
-        .nav-content {
-            max-width: 1200px;
-            margin: 0 auto;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            height: 60px;
-        }
-        .logo {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .logo-icon {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .logo-icon i {
-            color: white;
-            font-size: 18px;
-        }
-        .logo-text {
-            font-size: 18px;
-            font-weight: 600;
-            color: #333;
-        }
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .username {
-            color: #666;
-        }
-        .logout-btn {
-            background: #ef4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-size: 14px;
-        }
-        .logout-btn:hover {
-            background: #dc2626;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 80px auto 20px;
-            padding: 0 20px;
-        }
-        .stats {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 20px;
-            margin-bottom: 30px;
-        }
-        .stat-card {
-            background: white;
-            border-radius: 10px;
-            padding: 20px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .stat-title {
-            color: #666;
-            font-size: 14px;
-            margin-bottom: 10px;
-        }
-        .stat-number {
-            font-size: 32px;
-            font-weight: 600;
-            color: #333;
-        }
-        .content {
-            display: grid;
-            grid-template-columns: 1fr 2fr;
-            gap: 30px;
-        }
-        @media (max-width: 768px) {
-            .content { grid-template-columns: 1fr; }
-        }
-        .panel {
-            background: white;
-            border-radius: 10px;
-            padding: 25px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
-        .panel-title {
-            font-size: 18px;
-            font-weight: 600;
-            margin-bottom: 20px;
-            color: #333;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .panel-title i {
-            color: #667eea;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            color: #555;
-            margin-bottom: 8px;
-            font-weight: 500;
-        }
-        .form-group input,
-        .form-group textarea {
-            width: 100%;
-            padding: 10px 15px;
-            border: 2px solid #e0e0e0;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        .form-group input:focus,
-        .form-group textarea:focus {
-            outline: none;
-            border-color: #667eea;
-        }
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-            transition: transform 0.2s;
-        }
-        .btn-primary:hover {
+        .card-hover:hover {
             transform: translateY(-2px);
-        }
-        .btn-primary:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-        }
-        .keys-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-        }
-        .search-box {
-            position: relative;
-        }
-        .search-box input {
-            padding: 8px 15px 8px 35px;
-            border: 2px solid #e0e0e0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-        .search-box i {
-            position: absolute;
-            left: 10px;
-            top: 10px;
-            color: #999;
-        }
-        .keys-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-        .keys-table th {
-            text-align: left;
-            padding: 12px;
-            border-bottom: 2px solid #eee;
-            color: #666;
-            font-weight: 500;
-        }
-        .keys-table td {
-            padding: 12px;
-            border-bottom: 1px solid #eee;
-        }
-        .key-code {
-            font-family: monospace;
-            background: #f5f5f5;
-            padding: 4px 8px;
-            border-radius: 4px;
-            cursor: pointer;
-        }
-        .key-code:hover {
-            background: #e0e0e0;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
         }
         .status-badge {
             padding: 4px 12px;
@@ -220,464 +25,1199 @@
         }
         .status-active { background: #d1fae5; color: #065f46; }
         .status-locked { background: #fef3c7; color: #92400e; }
-        .status-deleted { background: #fee2e2; color: #991b1b; }
-        .action-btn {
-            background: none;
-            border: none;
-            cursor: pointer;
-            padding: 5px;
-            margin: 0 2px;
-            color: #666;
+        .status-revoked { background: #fee2e2; color: #991b1b; }
+        .status-expired { background: #e0e7ff; color: #3730a3; }
+        
+        /* Custom scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-        .action-btn:hover {
-            color: #333;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
         }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #666;
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
         }
-        .loading i {
-            animation: spin 1s linear infinite;
-            margin-right: 10px;
-        }
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        .message {
-            padding: 10px 15px;
-            border-radius: 5px;
-            margin: 10px 0;
-            display: none;
-        }
-        .success { background: #d1fae5; color: #065f46; }
-        .error { background: #fee2e2; color: #991b1b; }
-        .empty-state {
-            text-align: center;
-            padding: 40px;
-            color: #666;
-        }
-        .api-info {
-            background: #f0f7ff;
-            border: 1px solid #c2e0ff;
-            border-radius: 10px;
-            padding: 20px;
-            margin-top: 30px;
-        }
-        .api-info h4 {
-            color: #0066cc;
-            margin-bottom: 10px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .api-code {
-            background: #1e293b;
-            color: white;
-            padding: 15px;
-            border-radius: 5px;
-            font-family: monospace;
-            font-size: 14px;
-            margin: 10px 0;
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #555;
         }
     </style>
 </head>
-<body>
-    <!-- Navbar -->
-    <nav class="navbar">
-        <div class="nav-content">
-            <div class="logo">
-                <div class="logo-icon">
-                    <i class="fas fa-key"></i>
-                </div>
-                <span class="logo-text">Admin Key Panel</span>
-            </div>
-            <div class="user-info">
-                <span class="username" id="username">Admin</span>
-                <button class="logout-btn" onclick="logout()">
-                    <i class="fas fa-sign-out-alt"></i> Đăng xuất
-                </button>
-            </div>
-        </div>
-    </nav>
-
-    <!-- Main Content -->
-    <div class="container">
-        <!-- Stats -->
-        <div class="stats">
-            <div class="stat-card">
-                <div class="stat-title">Tổng số Keys</div>
-                <div class="stat-number" id="totalKeys">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Keys Active</div>
-                <div class="stat-number" id="activeKeys">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Tổng lượt dùng</div>
-                <div class="stat-number" id="totalUsage">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Keys Locked</div>
-                <div class="stat-number" id="lockedKeys">0</div>
-            </div>
-        </div>
-
-        <!-- Content Grid -->
-        <div class="content">
-            <!-- Left Panel - Create Key -->
-            <div class="panel">
-                <h3 class="panel-title">
-                    <i class="fas fa-plus-circle"></i> Tạo Key Mới
-                </h3>
-                
-                <div class="form-group">
-                    <label>Key (để trống để tự động tạo)</label>
-                    <input type="text" id="newKey" placeholder="KEY_ABC123...">
-                </div>
-                
-                <div class="form-group">
-                    <label>Chủ sở hữu (tùy chọn)</label>
-                    <input type="text" id="newOwner" placeholder="Tên người dùng">
-                </div>
-                
-                <div class="form-group">
-                    <label>Mô tả (tùy chọn)</label>
-                    <textarea id="newDescription" rows="2" placeholder="Mô tả mục đích sử dụng"></textarea>
-                </div>
-                
-                <button class="btn-primary" onclick="createKey()" id="createBtn">
-                    <i class="fas fa-plus"></i> Tạo Key Mới
-                </button>
-                
-                <div id="message" class="message"></div>
-            </div>
-
-            <!-- Right Panel - Keys List -->
-            <div class="panel">
-                <div class="keys-header">
-                    <h3 class="panel-title">
-                        <i class="fas fa-list"></i> Danh Sách Keys
-                    </h3>
-                    <div class="search-box">
-                        <i class="fas fa-search"></i>
-                        <input type="text" id="search" placeholder="Tìm kiếm...">
-                    </div>
-                </div>
-                
-                <div class="loading" id="loading">
-                    <i class="fas fa-spinner"></i> Đang tải danh sách keys...
-                </div>
-                
-                <div id="emptyState" class="empty-state" style="display: none;">
-                    <i class="fas fa-key" style="font-size: 48px; margin-bottom: 20px; color: #ccc;"></i>
-                    <h4>Chưa có key nào</h4>
-                    <p>Tạo key đầu tiên của bạn để bắt đầu</p>
-                </div>
-                
-                <table class="keys-table" id="keysTable" style="display: none;">
-                    <thead>
-                        <tr>
-                            <th>ID</th>
-                            <th>Key</th>
-                            <th>Chủ sở hữu</th>
-                            <th>Trạng thái</th>
-                            <th>Lượt dùng</th>
-                            <th>Hành động</th>
-                        </tr>
-                    </thead>
-                    <tbody id="keysBody">
-                        <!-- Keys will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-        </div>
-
-        <!-- API Info -->
-        <div class="api-info">
-            <h4><i class="fas fa-code"></i> API Endpoint cho Android Shell</h4>
-            <p>Validate Key (GET):</p>
-            <div class="api-code">
-                GET /api/validate/{your-key}<br>
-                <span style="color: #60a5fa;">// Ví dụ: https://admin-panel-nxvh.onrender.com/api/validate/KEY_ABC123</span>
-            </div>
-            <p style="font-size: 14px; color: #666;">
-                Response: {"valid": true/false, "key": {...}}
-            </p>
+<body class="bg-gray-50">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p class="text-gray-600">Loading dashboard...</p>
         </div>
     </div>
 
-    <!-- Font Awesome -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/js/all.min.js"></script>
+    <!-- Main Layout -->
+    <div id="mainLayout" class="hidden">
+        <!-- Navigation -->
+        <nav class="bg-white shadow-lg border-b">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <!-- Logo -->
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center">
+                            <i class="fas fa-server text-blue-600 text-xl mr-3"></i>
+                            <span class="text-xl font-bold text-gray-800">Key Admin</span>
+                            <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">v2.0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- User Info -->
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-700" id="userName">Admin</p>
+                            <p class="text-xs text-gray-500">Administrator</p>
+                        </div>
+                        <div class="relative">
+                            <button id="userMenuBtn" class="flex items-center focus:outline-none">
+                                <div class="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold">A</span>
+                                </div>
+                                <i class="fas fa-chevron-down ml-2 text-gray-400"></i>
+                            </button>
+                            
+                            <!-- Dropdown Menu -->
+                            <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-10 border">
+                                <div class="px-4 py-2 border-b">
+                                    <p class="text-sm font-medium text-gray-900" id="dropdownUserName">Admin</p>
+                                    <p class="text-xs text-gray-500">Super Administrator</p>
+                                </div>
+                                <button onclick="refreshDashboard()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sync-alt mr-2"></i>Refresh
+                                </button>
+                                <button onclick="showApiEndpoints()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-code mr-2"></i>API Endpoints
+                                </button>
+                                <div class="border-t mt-1">
+                                    <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
 
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Key Management Dashboard</h1>
+                <p class="text-gray-600 mt-2">Manage Server & User API Keys</p>
+            </div>
+
+            <!-- Stats -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <!-- Total Server Keys -->
+                <div class="bg-white rounded-xl shadow card-hover p-6 border-l-4 border-blue-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Server Keys</p>
+                            <p class="text-3xl font-bold text-gray-900" id="serverKeysCount">0</p>
+                        </div>
+                        <div class="p-3 bg-blue-100 rounded-lg">
+                            <i class="fas fa-server text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-check-circle mr-2 text-green-500"></i>
+                            <span id="serverActiveCount">0</span> active
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total User Keys -->
+                <div class="bg-white rounded-xl shadow card-hover p-6 border-l-4 border-green-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">User Keys</p>
+                            <p class="text-3xl font-bold text-gray-900" id="userKeysCount">0</p>
+                        </div>
+                        <div class="p-3 bg-green-100 rounded-lg">
+                            <i class="fas fa-users text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-bolt mr-2 text-amber-500"></i>
+                            <span id="userActiveCount">0</span> active
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Total Usage -->
+                <div class="bg-white rounded-xl shadow card-hover p-6 border-l-4 border-purple-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Total Usage</p>
+                            <p class="text-3xl font-bold text-gray-900" id="totalUsage">0</p>
+                        </div>
+                        <div class="p-3 bg-purple-100 rounded-lg">
+                            <i class="fas fa-chart-bar text-purple-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-calendar-day mr-2"></i>
+                            <span id="todayUsage">0</span> today
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Expiring Soon -->
+                <div class="bg-white rounded-xl shadow card-hover p-6 border-l-4 border-amber-500">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Expiring Soon</p>
+                            <p class="text-3xl font-bold text-gray-900" id="expiringCount">0</p>
+                        </div>
+                        <div class="p-3 bg-amber-100 rounded-lg">
+                            <i class="fas fa-clock text-amber-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            <span id="expiredCount">0</span> expired
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabs -->
+            <div class="mb-6">
+                <div class="border-b border-gray-200">
+                    <nav class="-mb-px flex space-x-8">
+                        <button id="tabServer" onclick="switchTab('server')" 
+                                class="py-4 px-1 border-b-2 border-blue-500 font-medium text-sm text-blue-600 flex items-center">
+                            <i class="fas fa-server mr-2"></i>
+                            Server Keys
+                        </button>
+                        <button id="tabUser" onclick="switchTab('user')" 
+                                class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center">
+                            <i class="fas fa-users mr-2"></i>
+                            User Keys
+                        </button>
+                        <button id="tabGenerate" onclick="switchTab('generate')" 
+                                class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center">
+                            <i class="fas fa-plus-circle mr-2"></i>
+                            Generate Keys
+                        </button>
+                        <button id="tabApi" onclick="switchTab('api')" 
+                                class="py-4 px-1 border-b-2 border-transparent font-medium text-sm text-gray-500 hover:text-gray-700 hover:border-gray-300 flex items-center">
+                            <i class="fas fa-code mr-2"></i>
+                            API Docs
+                        </button>
+                    </nav>
+                </div>
+            </div>
+
+            <!-- Tab Content -->
+            <div id="tabContent">
+                <!-- Content will be loaded here -->
+                <div class="text-center py-12">
+                    <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-4"></i>
+                    <p class="text-gray-600">Loading content...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Container -->
+    <div id="notificationContainer" class="fixed top-4 right-4 z-50 space-y-2"></div>
+
+    <!-- JavaScript -->
     <script>
-        // Kiểm tra đăng nhập
-        function checkLogin() {
-            const loggedIn = localStorage.getItem('admin_logged_in');
-            if (loggedIn !== 'true') {
+        // Global variables
+        let currentTab = 'server';
+        let serverKeys = [];
+        let userKeys = [];
+        let adminData = null;
+        
+        // ========== AUTH FUNCTIONS ==========
+        
+        function checkAuth() {
+            const auth = localStorage.getItem('admin_auth');
+            const user = localStorage.getItem('admin_user');
+            
+            if (!auth || auth !== 'true' || !user) {
                 window.location.href = '/';
                 return false;
             }
-            return true;
-        }
-        
-        // Đăng xuất
-        function logout() {
-            localStorage.removeItem('admin_logged_in');
-            localStorage.removeItem('admin_username');
-            window.location.href = '/';
-        }
-        
-        // Hiển thị thông báo
-        function showMessage(text, type = 'success') {
-            const messageDiv = document.getElementById('message');
-            messageDiv.textContent = text;
-            messageDiv.className = `message ${type}`;
-            messageDiv.style.display = 'block';
-            
-            setTimeout(() => {
-                messageDiv.style.display = 'none';
-            }, 3000);
-        }
-        
-        // Tải danh sách keys
-        async function loadKeys() {
-            if (!checkLogin()) return;
             
             try {
-                // Sử dụng Basic auth đơn giản
-                const authHeader = 'Basic ' + btoa('admin:admin');
-                
-                const response = await fetch('/api/keys', {
-                    headers: {
-                        'Authorization': authHeader
-                    }
-                });
-                
-                if (response.status === 401) {
-                    showMessage('Phiên đăng nhập hết hạn', 'error');
-                    setTimeout(logout, 2000);
-                    return;
-                }
-                
-                const data = await response.json();
-                
-                document.getElementById('loading').style.display = 'none';
-                
-                if (data.success && data.keys.length > 0) {
-                    renderKeys(data.keys);
-                    updateStats(data.keys);
-                    document.getElementById('keysTable').style.display = 'table';
-                    document.getElementById('emptyState').style.display = 'none';
-                } else {
-                    document.getElementById('keysTable').style.display = 'none';
-                    document.getElementById('emptyState').style.display = 'block';
-                }
-            } catch (error) {
-                console.error('Error loading keys:', error);
-                showMessage('Lỗi tải keys: ' + error.message, 'error');
+                adminData = JSON.parse(user);
+                return true;
+            } catch {
+                window.location.href = '/';
+                return false;
             }
         }
         
-        // Hiển thị keys
-        function renderKeys(keys) {
-            const tbody = document.getElementById('keysBody');
-            tbody.innerHTML = '';
+        function logout() {
+            if (confirm('Are you sure you want to logout?')) {
+                localStorage.removeItem('admin_auth');
+                localStorage.removeItem('admin_user');
+                window.location.href = '/';
+            }
+        }
+        
+        // ========== NOTIFICATION ==========
+        
+        function showNotification(message, type = 'info') {
+            const container = document.getElementById('notificationContainer');
+            const id = 'notif-' + Date.now();
             
-            keys.forEach(key => {
-                const tr = document.createElement('tr');
+            const notification = document.createElement('div');
+            notification.id = id;
+            notification.className = `px-6 py-4 rounded-lg shadow-lg text-white transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                type === 'warning' ? 'bg-amber-500' : 
+                'bg-blue-500'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : type === 'warning' ? 'exclamation-circle' : 'info-circle'} mr-3"></i>
+                    <span class="flex-1">${message}</span>
+                    <button onclick="document.getElementById('${id}').remove()" class="ml-4 text-white/80 hover:text-white">
+                        <i class="fas fa-times"></i>
+                    </button>
+                </div>
+            `;
+            
+            container.appendChild(notification);
+            
+            // Auto remove after 5 seconds
+            setTimeout(() => {
+                if (document.getElementById(id)) {
+                    notification.style.opacity = '0';
+                    notification.style.transform = 'translateX(100px)';
+                    setTimeout(() => notification.remove(), 300);
+                }
+            }, 5000);
+        }
+        
+        // ========== DATA FUNCTIONS ==========
+        
+        async function loadStats() {
+            try {
+                const response = await fetch('/api/stats');
+                const data = await response.json();
                 
+                if (data.success) {
+                    // Update server stats
+                    const serverTotal = data.total.total_server_keys || 0;
+                    const serverActive = data.server_stats?.find(s => s.status === 'active')?.count || 0;
+                    
+                    // Update user stats
+                    const userTotal = data.total.total_user_keys || 0;
+                    const userActive = data.user_stats?.find(s => s.status === 'active')?.count || 0;
+                    
+                    // Update usage
+                    const serverUsage = data.total.server_total_usage || 0;
+                    const userUsage = data.total.user_total_usage || 0;
+                    const totalUsage = serverUsage + userUsage;
+                    
+                    document.getElementById('serverKeysCount').textContent = serverTotal;
+                    document.getElementById('serverActiveCount').textContent = serverActive;
+                    document.getElementById('userKeysCount').textContent = userTotal;
+                    document.getElementById('userActiveCount').textContent = userActive;
+                    document.getElementById('totalUsage').textContent = totalUsage;
+                    
+                    // TODO: Calculate expiring and expired
+                    document.getElementById('expiringCount').textContent = '0';
+                    document.getElementById('expiredCount').textContent = '0';
+                    document.getElementById('todayUsage').textContent = '0';
+                }
+            } catch (error) {
+                console.error('Load stats error:', error);
+            }
+        }
+        
+        async function loadServerKeys() {
+            try {
+                const response = await fetch('/api/server-keys');
+                const data = await response.json();
+                
+                if (data.success) {
+                    serverKeys = data.keys || [];
+                    renderServerKeys();
+                }
+            } catch (error) {
+                console.error('Load server keys error:', error);
+                showNotification('Failed to load server keys', 'error');
+            }
+        }
+        
+        async function loadUserKeys() {
+            try {
+                const response = await fetch('/api/user-keys');
+                const data = await response.json();
+                
+                if (data.success) {
+                    userKeys = data.keys || [];
+                    renderUserKeys();
+                }
+            } catch (error) {
+                console.error('Load user keys error:', error);
+                showNotification('Failed to load user keys', 'error');
+            }
+        }
+        
+        // ========== RENDER FUNCTIONS ==========
+        
+        function renderServerKeys() {
+            const tabContent = document.getElementById('tabContent');
+            
+            if (serverKeys.length === 0) {
+                tabContent.innerHTML = `
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <div class="text-center py-12">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <i class="fas fa-server text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">No Server Keys</h3>
+                            <p class="text-gray-500 mb-6">Generate your first server key to get started</p>
+                            <button onclick="switchTab('generate')" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-plus mr-2"></i>Generate Server Key
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-server mr-2"></i>
+                            Server Keys (${serverKeys.length})
+                        </h3>
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <input type="text" id="searchServer" placeholder="Search keys..." 
+                                       class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                            </div>
+                            <button onclick="loadServerKeys()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">ID</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Key</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Name</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Usage</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Expires</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+            `;
+            
+            serverKeys.forEach(key => {
+                const statusClass = getStatusClass(key.status);
+                const statusText = getStatusText(key.status);
+                const expiresDate = key.expires_at ? new Date(key.expires_at) : null;
+                const isExpired = expiresDate && expiresDate < new Date();
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4">
+                            <span class="font-mono text-sm">${key.id}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-mono text-sm">
+                                <code class="bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200" 
+                                      onclick="copyToClipboard('${key.key}')"
+                                      title="Click to copy">
+                                    ${key.key.substring(0, 12)}...
+                                </code>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            ${key.name || '<span class="text-gray-400">-</span>'}
+                            ${key.description ? `<div class="text-xs text-gray-500 mt-1">${key.description}</div>` : ''}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="status-badge ${statusClass} ${isExpired ? 'status-expired' : ''}">
+                                ${isExpired ? 'Expired' : statusText}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center">
+                                <span class="font-semibold">${key.usage_count}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            ${expiresDate ? expiresDate.toLocaleDateString('vi-VN') : '<span class="text-gray-400">Never</span>'}
+                            ${isExpired ? '<div class="text-xs text-red-500">Expired</div>' : ''}
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex space-x-1">
+                                <button onclick="resetKey(${key.id}, 'server')" 
+                                        class="p-1.5 text-green-600 hover:bg-green-50 rounded" 
+                                        title="Reset">
+                                    <i class="fas fa-redo text-xs"></i>
+                                </button>
+                                ${key.status !== 'locked' ? `
+                                    <button onclick="lockKey(${key.id}, 'server')" 
+                                            class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" 
+                                            title="Lock">
+                                        <i class="fas fa-lock text-xs"></i>
+                                    </button>
+                                ` : ''}
+                                ${key.status !== 'revoked' ? `
+                                    <button onclick="revokeKey(${key.id}, 'server')" 
+                                            class="p-1.5 text-red-600 hover:bg-red-50 rounded" 
+                                            title="Revoke">
+                                        <i class="fas fa-ban text-xs"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            tabContent.innerHTML = html;
+            
+            // Add search functionality
+            const searchInput = document.getElementById('searchServer');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('tbody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
+        }
+        
+        function renderUserKeys() {
+            const tabContent = document.getElementById('tabContent');
+            
+            if (userKeys.length === 0) {
+                tabContent.innerHTML = `
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <div class="text-center py-12">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <i class="fas fa-users text-gray-400 text-2xl"></i>
+                            </div>
+                            <h3 class="text-lg font-semibold text-gray-700 mb-2">No User Keys</h3>
+                            <p class="text-gray-500 mb-6">Generate your first user key</p>
+                            <button onclick="switchTab('generate')" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-plus mr-2"></i>Generate User Key
+                            </button>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = `
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h3 class="text-lg font-semibold text-gray-800">
+                            <i class="fas fa-users mr-2"></i>
+                            User Keys (${userKeys.length})
+                        </h3>
+                        <div class="flex items-center space-x-3">
+                            <div class="relative">
+                                <input type="text" id="searchUser" placeholder="Search keys..." 
+                                       class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                                <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                            </div>
+                            <button onclick="loadUserKeys()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition">
+                                <i class="fas fa-sync-alt"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="overflow-x-auto custom-scrollbar">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">ID</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Key</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">User ID</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Device</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Status</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Usage</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-gray-200">
+            `;
+            
+            userKeys.forEach(key => {
                 const statusClass = getStatusClass(key.status);
                 const statusText = getStatusText(key.status);
                 
-                tr.innerHTML = `
-                    <td>${key.id}</td>
-                    <td>
-                        <code class="key-code" onclick="copyToClipboard('${key.key}')" 
-                              title="Click để copy">
-                            ${key.key.length > 15 ? key.key.substring(0, 15) + '...' : key.key}
-                        </code>
-                        ${key.description ? `<div style="font-size: 12px; color: #666; margin-top: 5px;">${key.description}</div>` : ''}
-                    </td>
-                    <td>${key.owner || '-'}</td>
-                    <td><span class="status-badge ${statusClass}">${statusText}</span></td>
-                    <td>${key.usage_count}</td>
-                    <td>
-                        ${key.status !== 'active' ? `<button class="action-btn" onclick="resetKey(${key.id})" title="Reset"><i class="fas fa-redo" style="color: #10b981;"></i></button>` : ''}
-                        ${key.status !== 'locked' ? `<button class="action-btn" onclick="lockKey(${key.id})" title="Lock"><i class="fas fa-lock" style="color: #f59e0b;"></i></button>` : ''}
-                        ${key.status !== 'deleted' ? `<button class="action-btn" onclick="deleteKey(${key.id})" title="Delete"><i class="fas fa-trash" style="color: #ef4444;"></i></button>` : ''}
-                    </td>
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4">
+                            <span class="font-mono text-sm">${key.id}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-mono text-sm">
+                                <code class="bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200" 
+                                      onclick="copyToClipboard('${key.key}')"
+                                      title="Click to copy">
+                                    ${key.key.substring(0, 12)}...
+                                </code>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            ${key.user_id || '<span class="text-gray-400">-</span>'}
+                        </td>
+                        <td class="py-3 px-4">
+                            ${key.device || '<span class="text-gray-400">-</span>'}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="status-badge ${statusClass}">
+                                ${statusText}
+                            </span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center">
+                                <span class="font-semibold">${key.usage_count}</span>
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex space-x-1">
+                                <button onclick="resetKey(${key.id}, 'user')" 
+                                        class="p-1.5 text-green-600 hover:bg-green-50 rounded" 
+                                        title="Reset">
+                                    <i class="fas fa-redo text-xs"></i>
+                                </button>
+                                ${key.status !== 'locked' ? `
+                                    <button onclick="lockKey(${key.id}, 'user')" 
+                                            class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" 
+                                            title="Lock">
+                                        <i class="fas fa-lock text-xs"></i>
+                                    </button>
+                                ` : ''}
+                                <button onclick="deleteKey(${key.id}, 'user')" 
+                                        class="p-1.5 text-red-600 hover:bg-red-50 rounded" 
+                                        title="Delete">
+                                    <i class="fas fa-trash text-xs"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
                 `;
-                
-                tbody.appendChild(tr);
             });
+            
+            html += `
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            `;
+            
+            tabContent.innerHTML = html;
+            
+            // Add search functionality
+            const searchInput = document.getElementById('searchUser');
+            if (searchInput) {
+                searchInput.addEventListener('input', function(e) {
+                    const searchTerm = e.target.value.toLowerCase();
+                    const rows = document.querySelectorAll('tbody tr');
+                    
+                    rows.forEach(row => {
+                        const text = row.textContent.toLowerCase();
+                        row.style.display = text.includes(searchTerm) ? '' : 'none';
+                    });
+                });
+            }
         }
         
-        // Cập nhật thống kê
-        function updateStats(keys) {
-            const totalKeys = keys.length;
-            const activeKeys = keys.filter(k => k.status === 'active').length;
-            const lockedKeys = keys.filter(k => k.status === 'locked').length;
-            const totalUsage = keys.reduce((sum, k) => sum + k.usage_count, 0);
+        function renderGenerateTab() {
+            const tabContent = document.getElementById('tabContent');
             
-            document.getElementById('totalKeys').textContent = totalKeys;
-            document.getElementById('activeKeys').textContent = activeKeys;
-            document.getElementById('lockedKeys').textContent = lockedKeys;
-            document.getElementById('totalUsage').textContent = totalUsage;
+            html = `
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                    <!-- Generate Server Key -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-server mr-2 text-blue-600"></i>
+                            Generate Server Key
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Name (optional)</label>
+                                <input type="text" id="serverName" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                       placeholder="My Server Key">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Description (optional)</label>
+                                <textarea id="serverDescription" rows="2"
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                          placeholder="Description for this server key"></textarea>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Expires in (days)</label>
+                                <input type="number" id="serverExpires" value="30" min="1"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            
+                            <button onclick="generateServerKey()" id="generateServerBtn"
+                                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center">
+                                <i class="fas fa-key mr-2"></i>
+                                <span>Generate Server Key</span>
+                                <span id="serverLoading" class="hidden ml-2">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- Generate User Key -->
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-users mr-2 text-green-600"></i>
+                            Generate User Key
+                        </h3>
+                        
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">User ID (optional)</label>
+                                <input type="text" id="userId" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                       placeholder="user_123">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Device (optional)</label>
+                                <input type="text" id="userDevice" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                       placeholder="Android, iOS, Web">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Expires in (days)</label>
+                                <input type="number" id="userExpires" value="7" min="1"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                            </div>
+                            
+                            <button onclick="generateUserKey()" id="generateUserBtn"
+                                    class="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center">
+                                <i class="fas fa-key mr-2"></i>
+                                <span>Generate User Key</span>
+                                <span id="userLoading" class="hidden ml-2">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Generated Key Display -->
+                <div id="generatedKeyDisplay" class="hidden mt-8">
+                    <div class="bg-white rounded-xl shadow p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-check-circle text-green-500 mr-2"></i>
+                            Key Generated Successfully!
+                        </h4>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Your Key:</label>
+                                <div class="bg-gray-800 text-gray-100 p-4 rounded-lg font-mono text-sm break-all" id="generatedKeyValue"></div>
+                            </div>
+                            <div class="grid grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Key ID:</label>
+                                    <p id="generatedKeyId" class="font-semibold"></p>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-medium text-gray-700 mb-2">Expires:</label>
+                                    <p id="generatedKeyExpires" class="font-semibold"></p>
+                                </div>
+                            </div>
+                            <button onclick="copyGeneratedKey()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-copy mr-2"></i>Copy Key to Clipboard
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            
+            tabContent.innerHTML = html;
         }
         
-        // Tạo key mới
-        async function createKey() {
-            if (!checkLogin()) return;
+        function renderApiTab() {
+            const tabContent = document.getElementById('tabContent');
             
-            const keyInput = document.getElementById('newKey');
-            const ownerInput = document.getElementById('newOwner');
-            const descInput = document.getElementById('newDescription');
-            const btn = document.getElementById('createBtn');
+            html = `
+                <div class="bg-white rounded-xl shadow p-6">
+                    <h3 class="text-lg font-semibold text-gray-800 mb-6">
+                        <i class="fas fa-code mr-2 text-purple-600"></i>
+                        API Documentation
+                    </h3>
+                    
+                    <div class="space-y-8">
+                        <!-- Server Key API -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                <i class="fas fa-server text-blue-500 mr-2"></i>
+                                Server Key API
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Validate Server Key -->
+                                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                        <div class="flex items-center">
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded mr-3">GET</span>
+                                            <code class="text-sm">/api/server/validate/{key}</code>
+                                        </div>
+                                    </div>
+                                    <div class="p-4">
+                                        <p class="text-gray-600 mb-3">Validate a server key (for Android Shell Script).</p>
+                                        <div class="mb-3">
+                                            <span class="text-sm font-medium text-gray-700">Example Request:</span>
+                                            <pre class="mt-1 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+curl -X GET "https://admin-panel-nxvh.onrender.com/api/server/validate/SRV_ABC123XYZ456"</pre>
+                                        </div>
+                                        <div>
+                                            <span class="text-sm font-medium text-gray-700">Response (success):</span>
+                                            <pre class="mt-1 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+{
+  "valid": true,
+  "server": {
+    "id": 1,
+    "name": "My Server",
+    "usage_count": 5,
+    "expires_at": "2024-12-31T23:59:59.000Z"
+  }
+}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <!-- Generate Server Key -->
+                                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                        <div class="flex items-center">
+                                            <span class="px-2 py-1 bg-yellow-100 text-yellow-800 text-xs font-semibold rounded mr-3">POST</span>
+                                            <code class="text-sm">/api/server-key/generate</code>
+                                        </div>
+                                    </div>
+                                    <div class="p-4">
+                                        <div class="mb-3">
+                                            <span class="text-sm font-medium text-gray-700">Request Body:</span>
+                                            <pre class="mt-1 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+{
+  "name": "Production Server",
+  "description": "For Android shell scripts",
+  "expires_in_days": 30
+}</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- User Key API -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                <i class="fas fa-users text-green-500 mr-2"></i>
+                                User Key API
+                            </h4>
+                            
+                            <div class="space-y-4">
+                                <!-- Validate User Key -->
+                                <div class="border border-gray-200 rounded-lg overflow-hidden">
+                                    <div class="bg-gray-50 px-4 py-3 border-b border-gray-200">
+                                        <div class="flex items-center">
+                                            <span class="px-2 py-1 bg-green-100 text-green-800 text-xs font-semibold rounded mr-3">GET</span>
+                                            <code class="text-sm">/api/user/validate/{key}</code>
+                                        </div>
+                                    </div>
+                                    <div class="p-4">
+                                        <p class="text-gray-600 mb-3">Validate a user key.</p>
+                                        <div class="mb-3">
+                                            <span class="text-sm font-medium text-gray-700">Example Request:</span>
+                                            <pre class="mt-1 p-3 bg-gray-100 rounded text-sm overflow-x-auto">
+curl -X GET "https://admin-panel-nxvh.onrender.com/api/user/validate/USR_ABC123XYZ456"</pre>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Android Shell Example -->
+                        <div>
+                            <h4 class="font-semibold text-gray-800 mb-3 flex items-center">
+                                <i class="fas fa-android text-green-500 mr-2"></i>
+                                Android Shell Script Example
+                            </h4>
+                            <div class="bg-gray-900 text-gray-100 p-4 rounded-lg">
+                                <pre class="text-sm overflow-x-auto">
+#!/bin/bash
+
+# Your Server Key
+SERVER_KEY="YOUR_SERVER_KEY_HERE"
+API_URL="https://admin-panel-nxvh.onrender.com/api/server/validate/$SERVER_KEY"
+
+# Validate the key
+response=$(curl -s -X GET "$API_URL")
+
+# Check if response contains "valid"
+if echo "$response" | grep -q '"valid":true'; then
+    echo "✅ Server key is valid!"
+    
+    # Extract server info
+    server_id=$(echo "$response" | grep -o '"id":[0-9]*' | cut -d: -f2)
+    usage_count=$(echo "$response" | grep -o '"usage_count":[0-9]*' | cut -d: -f2)
+    
+    echo "📊 Server ID: $server_id"
+    echo "📈 Usage count: $usage_count"
+    
+    # Your shell script logic here...
+    echo "🚀 Starting your script..."
+    
+else
+    echo "❌ Invalid server key"
+    error_msg=$(echo "$response" | grep -o '"error":"[^"]*"' | cut -d'"' -f4)
+    echo "Error: $error_msg"
+    exit 1
+fi</pre>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
             
-            const key = keyInput.value.trim();
-            const owner = ownerInput.value.trim() || null;
-            const description = descInput.value.trim() || null;
+            tabContent.innerHTML = html;
+        }
+        
+        // ========== ACTION FUNCTIONS ==========
+        
+        async function generateServerKey() {
+            const btn = document.getElementById('generateServerBtn');
+            const loading = document.getElementById('serverLoading');
+            const name = document.getElementById('serverName').value.trim();
+            const description = document.getElementById('serverDescription').value.trim();
+            const expires = document.getElementById('serverExpires').value;
             
             btn.disabled = true;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Đang tạo...';
+            loading.classList.remove('hidden');
             
             try {
-                const authHeader = 'Basic ' + btoa('admin:admin');
-                
-                const response = await fetch('/api/keys', {
+                const response = await fetch('/api/server-key/generate', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Authorization': authHeader
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        key: key || 'auto',
-                        owner: owner,
-                        description: description
+                        name: name || null,
+                        description: description || null,
+                        expires_in_days: parseInt(expires)
                     })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
+                    // Show generated key
+                    document.getElementById('generatedKeyValue').textContent = data.server_key;
+                    document.getElementById('generatedKeyId').textContent = data.key_id;
+                    document.getElementById('generatedKeyExpires').textContent = new Date(data.expires_at).toLocaleDateString('vi-VN');
+                    document.getElementById('generatedKeyDisplay').classList.remove('hidden');
+                    
                     // Clear form
-                    keyInput.value = '';
-                    ownerInput.value = '';
-                    descInput.value = '';
+                    document.getElementById('serverName').value = '';
+                    document.getElementById('serverDescription').value = '';
                     
-                    // Reload keys
-                    await loadKeys();
+                    // Reload server keys
+                    await loadServerKeys();
+                    await loadStats();
                     
-                    // Show success
-                    showMessage('✅ Key đã được tạo thành công!');
+                    showNotification('✅ Server key generated successfully!', 'success');
                     
-                    // Copy nếu là auto-generated
-                    if (!key && data.key) {
-                        copyToClipboard(data.key.key);
-                    }
+                    // Scroll to generated key display
+                    document.getElementById('generatedKeyDisplay').scrollIntoView({ behavior: 'smooth' });
+                    
                 } else {
-                    showMessage('❌ ' + (data.error || 'Lỗi tạo key'), 'error');
+                    showNotification('❌ ' + (data.error || 'Failed to generate key'), 'error');
                 }
             } catch (error) {
-                showMessage('❌ Lỗi kết nối: ' + error.message, 'error');
+                showNotification('❌ Connection error: ' + error.message, 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<i class="fas fa-plus"></i> Tạo Key Mới';
+                loading.classList.add('hidden');
             }
         }
         
-        // Reset key
-        async function resetKey(id) {
-            if (!confirm('Reset key này về active?')) return;
+        async function generateUserKey() {
+            const btn = document.getElementById('generateUserBtn');
+            const loading = document.getElementById('userLoading');
+            const userId = document.getElementById('userId').value.trim();
+            const device = document.getElementById('userDevice').value.trim();
+            const expires = document.getElementById('userExpires').value;
+            
+            btn.disabled = true;
+            loading.classList.remove('hidden');
             
             try {
-                const authHeader = 'Basic ' + btoa('admin:admin');
-                
-                const response = await fetch(`/api/keys/${id}/reset`, {
+                const response = await fetch('/api/user-key/generate', {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        user_id: userId || null,
+                        device: device || null,
+                        expires_in_days: parseInt(expires)
+                    })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    await loadKeys();
-                    showMessage('✅ Key đã reset');
+                    // Show generated key
+                    document.getElementById('generatedKeyValue').textContent = data.user_key;
+                    document.getElementById('generatedKeyId').textContent = data.key_id;
+                    document.getElementById('generatedKeyExpires').textContent = new Date(data.expires_at).toLocaleDateString('vi-VN');
+                    document.getElementById('generatedKeyDisplay').classList.remove('hidden');
+                    
+                    // Clear form
+                    document.getElementById('userId').value = '';
+                    document.getElementById('userDevice').value = '';
+                    
+                    // Reload user keys
+                    await loadUserKeys();
+                    await loadStats();
+                    
+                    showNotification('✅ User key generated successfully!', 'success');
+                    
+                    // Scroll to generated key display
+                    document.getElementById('generatedKeyDisplay').scrollIntoView({ behavior: 'smooth' });
+                    
                 } else {
-                    showMessage('❌ Lỗi reset key', 'error');
+                    showNotification('❌ ' + (data.error || 'Failed to generate key'), 'error');
                 }
             } catch (error) {
-                showMessage('❌ Lỗi kết nối', 'error');
+                showNotification('❌ Connection error: ' + error.message, 'error');
+            } finally {
+                btn.disabled = false;
+                loading.classList.add('hidden');
             }
         }
         
-        // Lock key
-        async function lockKey(id) {
-            if (!confirm('Khóa key này?')) return;
+        async function resetKey(id, type) {
+            if (!confirm(`Reset this ${type} key? Usage count will be reset to 0.`)) return;
             
             try {
-                const authHeader = 'Basic ' + btoa('admin:admin');
-                
-                const response = await fetch(`/api/keys/${id}/lock`, {
+                const response = await fetch(`/api/key/${id}/reset`, {
                     method: 'POST',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key_type: type })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    await loadKeys();
-                    showMessage('✅ Key đã khóa');
+                    showNotification('✅ Key reset successfully', 'success');
+                    
+                    if (type === 'server') {
+                        await loadServerKeys();
+                    } else {
+                        await loadUserKeys();
+                    }
+                    
+                    await loadStats();
                 } else {
-                    showMessage('❌ Lỗi khóa key', 'error');
+                    showNotification('❌ ' + (data.error || 'Failed to reset key'), 'error');
                 }
             } catch (error) {
-                showMessage('❌ Lỗi kết nối', 'error');
+                showNotification('❌ Connection error', 'error');
             }
         }
         
-        // Delete key
-        async function deleteKey(id) {
-            if (!confirm('Xóa key này?')) return;
+        async function lockKey(id, type) {
+            if (!confirm(`Lock this ${type} key? It will no longer be valid.`)) return;
             
             try {
-                const authHeader = 'Basic ' + btoa('admin:admin');
+                const response = await fetch(`/api/key/${id}/lock`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key_type: type })
+                });
                 
-                const response = await fetch(`/api/keys/${id}`, {
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('✅ Key locked successfully', 'success');
+                    
+                    if (type === 'server') {
+                        await loadServerKeys();
+                    } else {
+                        await loadUserKeys();
+                    }
+                    
+                    await loadStats();
+                } else {
+                    showNotification('❌ ' + (data.error || 'Failed to lock key'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Connection error', 'error');
+            }
+        }
+        
+        async function revokeKey(id, type) {
+            if (!confirm(`Revoke this ${type} key? It will be permanently invalid.`)) return;
+            
+            try {
+                const response = await fetch(`/api/server-key/${id}/revoke`, {
+                    method: 'POST'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('✅ Key revoked successfully', 'success');
+                    await loadServerKeys();
+                    await loadStats();
+                } else {
+                    showNotification('❌ ' + (data.error || 'Failed to revoke key'), 'error');
+                }
+            } catch (error) {
+                showNotification('❌ Connection error', 'error');
+            }
+        }
+        
+        async function deleteKey(id, type) {
+            if (!confirm(`Delete this ${type} key?`)) return;
+            
+            try {
+                const response = await fetch(`/api/key/${id}`, {
                     method: 'DELETE',
-                    headers: { 'Authorization': authHeader }
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ key_type: type })
                 });
                 
                 const data = await response.json();
                 
                 if (data.success) {
-                    await loadKeys();
-                    showMessage('✅ Key đã xóa');
+                    showNotification('✅ Key deleted successfully', 'success');
+                    
+                    if (type === 'server') {
+                        await loadServerKeys();
+                    } else {
+                        await loadUserKeys();
+                    }
+                    
+                    await loadStats();
                 } else {
-                    showMessage('❌ Lỗi xóa key', 'error');
+                    showNotification('❌ ' + (data.error || 'Failed to delete key'), 'error');
                 }
             } catch (error) {
-                showMessage('❌ Lỗi kết nối', 'error');
+                showNotification('❌ Connection error', 'error');
             }
         }
         
-        // Copy to clipboard
+        // ========== HELPER FUNCTIONS ==========
+        
+        function switchTab(tab) {
+            currentTab = tab;
+            
+            // Update active tab styling
+            document.getElementById('tabServer').className = 
+                `py-4 px-1 border-b-2 font-medium text-sm flex items-center ${tab === 'server' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+            
+            document.getElementById('tabUser').className = 
+                `py-4 px-1 border-b-2 font-medium text-sm flex items-center ${tab === 'user' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+            
+            document.getElementById('tabGenerate').className = 
+                `py-4 px-1 border-b-2 font-medium text-sm flex items-center ${tab === 'generate' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+            
+            document.getElementById('tabApi').className = 
+                `py-4 px-1 border-b-2 font-medium text-sm flex items-center ${tab === 'api' ? 'border-blue-500 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}`;
+            
+            // Render tab content
+            switch(tab) {
+                case 'server':
+                    renderServerKeys();
+                    break;
+                case 'user':
+                    renderUserKeys();
+                    break;
+                case 'generate':
+                    renderGenerateTab();
+                    break;
+                case 'api':
+                    renderApiTab();
+                    break;
+            }
+        }
+        
+        function refreshDashboard() {
+            showNotification('Refreshing dashboard...', 'info');
+            loadStats();
+            
+            if (currentTab === 'server') {
+                loadServerKeys();
+            } else if (currentTab === 'user') {
+                loadUserKeys();
+            }
+        }
+        
+        function showApiEndpoints() {
+            switchTab('api');
+        }
+        
         async function copyToClipboard(text) {
             try {
                 await navigator.clipboard.writeText(text);
-                showMessage('✅ Đã copy: ' + text);
+                showNotification('✅ Copied to clipboard!', 'success');
             } catch (err) {
-                showMessage('❌ Lỗi copy', 'error');
+                showNotification('❌ Failed to copy', 'error');
             }
         }
         
-        // Helper functions
+        function copyGeneratedKey() {
+            const key = document.getElementById('generatedKeyValue').textContent;
+            copyToClipboard(key);
+        }
+        
         function getStatusClass(status) {
             switch(status) {
                 case 'active': return 'status-active';
                 case 'locked': return 'status-locked';
-                case 'deleted': return 'status-deleted';
+                case 'revoked': return 'status-revoked';
+                case 'deleted': return 'status-revoked';
                 default: return 'status-active';
             }
         }
@@ -686,36 +1226,64 @@
             switch(status) {
                 case 'active': return 'Active';
                 case 'locked': return 'Locked';
+                case 'revoked': return 'Revoked';
                 case 'deleted': return 'Deleted';
                 default: return status;
             }
         }
         
-        // Khởi tạo
-        window.addEventListener('DOMContentLoaded', function() {
-            if (!checkLogin()) return;
+        // ========== INITIALIZATION ==========
+        
+        async function initializeDashboard() {
+            // Check authentication
+            if (!checkAuth()) return;
             
-            // Set username
-            const username = localStorage.getItem('admin_username') || 'Admin';
-            document.getElementById('username').textContent = username;
+            // Set user info
+            document.getElementById('userName').textContent = adminData?.username || 'Admin';
+            document.getElementById('dropdownUserName').textContent = adminData?.username || 'Admin';
             
-            // Load keys
-            loadKeys();
+            // Load initial data
+            await Promise.all([
+                loadStats(),
+                loadServerKeys(),
+                loadUserKeys()
+            ]);
             
-            // Search functionality
-            document.getElementById('search').addEventListener('input', function(e) {
-                const searchTerm = e.target.value.toLowerCase();
-                const rows = document.querySelectorAll('#keysBody tr');
-                
-                rows.forEach(row => {
-                    const text = row.textContent.toLowerCase();
-                    row.style.display = text.includes(searchTerm) ? '' : 'none';
-                });
+            // Set up event listeners
+            setupEventListeners();
+            
+            // Show dashboard
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainLayout').classList.remove('hidden');
+                showNotification('✅ Dashboard loaded successfully', 'success');
+            }, 500);
+        }
+        
+        function setupEventListeners() {
+            // User menu toggle
+            document.getElementById('userMenuBtn').addEventListener('click', function(e) {
+                e.stopPropagation();
+                const menu = document.getElementById('userMenu');
+                menu.classList.toggle('hidden');
             });
             
-            // Auto refresh every 30 seconds
-            setInterval(loadKeys, 30000);
-        });
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const menu = document.getElementById('userMenu');
+                const menuBtn = document.getElementById('userMenuBtn');
+                
+                if (!menu.contains(event.target) && !menuBtn.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+            
+            // Auto-refresh every 30 seconds
+            setInterval(refreshDashboard, 30000);
+        }
+        
+        // Start dashboard
+        window.addEventListener('DOMContentLoaded', initializeDashboard);
     </script>
 </body>
 </html>
