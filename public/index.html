@@ -1,165 +1,127 @@
-<!DOCTYPE html>
-<html lang="vi">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Đăng Nhập - Admin Key Panel</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-</head>
-<body class="bg-gray-100 min-h-screen flex items-center justify-center">
-    <div class="bg-white p-8 rounded-xl shadow-lg w-full max-w-md">
-        <div class="text-center mb-8">
-            <div class="inline-block p-4 bg-blue-100 rounded-full mb-4">
-                <i class="fas fa-key text-blue-600 text-3xl"></i>
-            </div>
-            <h1 class="text-2xl font-bold text-gray-800">Admin Key Panel</h1>
-            <p class="text-gray-600 mt-2">Đăng nhập để quản lý API keys</p>
-        </div>
-
-        <form id="loginForm" class="space-y-4">
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-user mr-2"></i>Tên đăng nhập
-                </label>
-                <input type="text" id="username" required
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                       placeholder="Nhập username" value="admin">
-            </div>
-            
-            <div>
-                <label class="block text-sm font-medium text-gray-700 mb-1">
-                    <i class="fas fa-lock mr-2"></i>Mật khẩu
-                </label>
-                <input type="password" id="password" required
-                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                       placeholder="Nhập mật khẩu" value="admin123">
-            </div>
-            
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-3">
-                <p class="text-sm text-blue-800">
-                    <i class="fas fa-info-circle mr-2"></i>
-                    <strong>Tài khoản mặc định:</strong><br>
-                    Username: <code class="bg-blue-100 px-2 py-1 rounded">admin</code><br>
-                    Password: <code class="bg-blue-100 px-2 py-1 rounded">admin123</code>
-                </p>
-            </div>
-            
-            <button type="submit" id="loginBtn"
-                    class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
-                <i class="fas fa-sign-in-alt mr-2"></i>
-                <span id="btnText">Đăng Nhập</span>
-                <span id="loading" class="hidden ml-2">
-                    <i class="fas fa-spinner fa-spin"></i>
-                </span>
-            </button>
-            
-            <div id="debugInfo" class="hidden text-xs text-gray-500 mt-4 p-3 bg-gray-100 rounded">
-                <!-- Debug info will appear here -->
-            </div>
-        </form>
+<script>
+    document.getElementById('loginForm').addEventListener('submit', async function(e) {
+        e.preventDefault();
         
-        <div class="mt-6 text-center text-sm text-gray-500">
-            <p><i class="fas fa-server mr-1"></i> API Key Management System</p>
-        </div>
-    </div>
-
-    <script>
-        document.getElementById('loginForm').addEventListener('submit', async function(e) {
-            e.preventDefault();
+        const username = document.getElementById('username').value;
+        const password = document.getElementById('password').value;
+        const btn = document.getElementById('loginBtn');
+        const btnText = document.getElementById('btnText');
+        const loading = document.getElementById('loading');
+        const debugInfo = document.getElementById('debugInfo');
+        
+        // Show loading
+        btn.disabled = true;
+        btnText.textContent = 'Đang đăng nhập...';
+        loading.classList.remove('hidden');
+        
+        // Clear debug
+        debugInfo.innerHTML = '';
+        debugInfo.classList.remove('hidden');
+        
+        try {
+            console.log('=== LOGIN ATTEMPT ===');
+            console.log('Username:', username);
             
-            const username = document.getElementById('username').value;
-            const password = document.getElementById('password').value;
-            const btn = document.getElementById('loginBtn');
-            const btnText = document.getElementById('btnText');
-            const loading = document.getElementById('loading');
-            const debugInfo = document.getElementById('debugInfo');
+            const response = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json'
+                },
+                credentials: 'include', // QUAN TRỌNG
+                body: JSON.stringify({ username, password })
+            });
             
-            // Show loading
-            btn.disabled = true;
-            btnText.textContent = 'Đang đăng nhập...';
-            loading.classList.remove('hidden');
+            console.log('Response status:', response.status);
+            console.log('Response headers:', response.headers);
             
-            // Clear previous debug
-            debugInfo.innerHTML = '';
-            debugInfo.classList.remove('hidden');
+            const data = await response.json();
+            console.log('Response data:', data);
             
-            try {
-                console.log('Sending login request...');
+            // Show debug info
+            debugInfo.innerHTML = `
+                <strong>Debug Info:</strong><br>
+                Status: ${response.status}<br>
+                Success: ${data.success}<br>
+                Session ID: ${data.sessionId || 'none'}<br>
+                User: ${data.user ? data.user.username : 'none'}
+            `;
+            
+            if (data.success) {
+                debugInfo.innerHTML += '<br><span class="text-green-600">✓ Server login successful!</span>';
                 
-                const response = await fetch('/api/auth/login', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/json'
-                    },
-                    credentials: 'include', // QUAN TRỌNG: gửi cookies
-                    body: JSON.stringify({ username, password })
-                });
-                
-                console.log('Response status:', response.status);
-                
-                const data = await response.json();
-                console.log('Response data:', data);
-                
-                // Show debug info
-                debugInfo.innerHTML = `
-                    <strong>Debug Info:</strong><br>
-                    Status: ${response.status}<br>
-                    Success: ${data.success}<br>
-                    Error: ${data.error || 'none'}<br>
-                    User: ${data.user ? data.user.username : 'none'}
-                `;
-                
-                if (data.success) {
-                    debugInfo.innerHTML += '<br><span class="text-green-600">✓ Login successful! Redirecting...</span>';
-                    
-                    // Kiểm tra session trước khi redirect
-                    setTimeout(async () => {
-                        try {
-                            const statusRes = await fetch('/api/auth/status', {
+                // ĐỢI 2 GIÂY rồi kiểm tra session
+                setTimeout(async () => {
+                    try {
+                        console.log('Checking session status...');
+                        
+                        const statusRes = await fetch('/api/auth/status', {
+                            credentials: 'include'
+                        });
+                        
+                        console.log('Status response:', statusRes.status);
+                        const statusData = await statusRes.json();
+                        console.log('Status data:', statusData);
+                        
+                        debugInfo.innerHTML += `<br>Session check: ${statusData.authenticated ? 'Authenticated ✓' : 'Not authenticated ✗'}`;
+                        
+                        if (statusData.authenticated) {
+                            debugInfo.innerHTML += '<br><span class="text-green-600">✓ Redirecting to dashboard...</span>';
+                            
+                            // Chuyển hướng TRỰC TIẾP không qua kiểm tra
+                            window.location.href = '/dashboard';
+                            
+                        } else {
+                            // Thử debug cookies
+                            const cookieRes = await fetch('/api/debug/cookies', {
                                 credentials: 'include'
                             });
-                            const statusData = await statusRes.json();
-                            console.log('Session status:', statusData);
+                            const cookieData = await cookieRes.json();
+                            console.log('Cookie debug:', cookieData);
                             
-                            if (statusData.authenticated) {
-                                window.location.href = '/dashboard';
-                            } else {
-                                alert('❌ Session không được tạo. Vui lòng thử lại.');
-                                resetButton();
-                            }
-                        } catch (err) {
-                            console.error('Session check error:', err);
-                            window.location.href = '/dashboard'; // Vẫn thử redirect
+                            debugInfo.innerHTML += `<br><span class="text-red-600">✗ Session không tồn tại</span>`;
+                            debugInfo.innerHTML += `<br>Cookies: ${cookieData.cookies}`;
+                            
+                            alert('❌ Session không được lưu. Thử đặt cookie thủ công?');
+                            resetButton();
                         }
-                    }, 1000);
-                    
-                } else {
-                    alert('❌ ' + (data.error || 'Đăng nhập thất bại'));
-                    resetButton();
-                }
+                        
+                    } catch (err) {
+                        console.error('Session check error:', err);
+                        // Vẫn thử redirect
+                        window.location.href = '/dashboard';
+                    }
+                }, 2000);
                 
-            } catch (error) {
-                console.error('Login error:', error);
-                debugInfo.innerHTML = `
-                    <strong>Error:</strong><br>
-                    ${error.message}<br>
-                    Kiểm tra console để biết thêm chi tiết
-                `;
-                alert('❌ Lỗi kết nối: ' + error.message);
+            } else {
+                alert('❌ ' + (data.error || 'Đăng nhập thất bại'));
                 resetButton();
             }
             
-            function resetButton() {
-                btn.disabled = false;
-                btnText.textContent = 'Đăng Nhập';
-                loading.classList.add('hidden');
-            }
-        });
+        } catch (error) {
+            console.error('Login error:', error);
+            debugInfo.innerHTML = `<strong>Error:</strong><br>${error.message}`;
+            alert('❌ Lỗi kết nối: ' + error.message);
+            resetButton();
+        }
         
-        // Auto focus
-        document.getElementById('username').focus();
-    </script>
-</body>
-</html>
+        function resetButton() {
+            btn.disabled = false;
+            btnText.textContent = 'Đăng Nhập';
+            loading.classList.add('hidden');
+        }
+    });
+    
+    // Test session trước khi đăng nhập
+    window.addEventListener('load', async () => {
+        try {
+            const res = await fetch('/api/debug/cookies', {
+                credentials: 'include'
+            });
+            const data = await res.json();
+            console.log('Initial cookies:', data.cookies);
+        } catch (err) {
+            console.log('Cannot get initial cookies:', err.message);
+        }
+    });
+</script>
