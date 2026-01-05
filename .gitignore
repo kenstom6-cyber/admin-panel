@@ -4,3 +4,4 @@ npm-debug.log
 *.db
 *.db-journal
 .env
+sessions.db
