@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Quản Lý Key</title>
+    <!-- Tailwind CSS CDN cho giao diện gọn gàng, nhanh chóng -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome cho icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Segoe UI', system-ui, sans-serif; }
+        .key-active { border-left-color: #10b981; }
+        .key-locked { border-left-color: #f59e0b; }
+        .key-deleted { border-left-color: #ef4444; }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+    <div class="container mx-auto p-4 md:p-6">
+        <!-- Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl font-bold text-gray-900"><i class="fas fa-key mr-3"></i>Admin Quản Lý Key</h1>
+            <p class="text-gray-600 mt-2">Quản lý, reset, khóa và xóa các API Key cho Shell Script Android. Dữ liệu được lưu trữ trong database.</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Cột trái: Form thêm key -->
+            <div class="lg:col-span-1">
+                <div class="bg-white rounded-xl shadow p-5 sticky top-4">
+                    <h2 class="text-xl font-semibold mb-4 text-gray-800"><i class="fas fa-plus-circle mr-2"></i>Thêm Key Mới</h2>
+                    <form id="addKeyForm">
+                        <div class="mb-4">
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="keyInput">Key *</label>
+                            <input type="text" id="keyInput" required
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                                   placeholder="Ví dụ: AK-2025-XYZ789">
+                            <p class="text-gray-500 text-xs mt-1">Key phải là duy nhất, dùng để xác thực từ shell script.</p>
+                        </div>
+                        <div class="mb-6">
+                            <label class="block text-gray-700 text-sm font-medium mb-2" for="ownerInput">Chủ sở hữu (tùy chọn)</label>
+                            <input type="text" id="ownerInput"
+                                   class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition"
+                                   placeholder="Tên người dùng hoặc dự án">
+                        </div>
+                        <button type="submit"
+                                class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 flex items-center justify-center">
+                            <i class="fas fa-save mr-2"></i> Lưu Key Vào Database
+                        </button>
+                    </form>
+
+                    <!-- Thông tin API Endpoint cho Android Shell -->
+                    <div class="mt-8 pt-6 border-t border-gray-200">
+                        <h3 class="text-lg font-semibold mb-3 text-gray-800"><i class="fas fa-mobile-alt mr-2"></i>Cho Shell Script Android</h3>
+                        <p class="text-sm text-gray-600 mb-2">Sử dụng endpoint sau để validate key từ script:</p>
+                        <div class="bg-gray-800 text-gray-100 p-3 rounded-lg font-mono text-sm break-all">
+                            GET /api/validate-key/<span class="text-amber-300">[your_key]</span>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">Ví dụ: <code class="bg-gray-100 px-2 py-1 rounded">https://your-app.onrender.com/api/validate-key/AK-2025-XYZ789</code></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Cột phải: Danh sách keys -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow overflow-hidden">
+                    <div class="px-5 py-4 border-b border-gray-200 flex justify-between items-center">
+                        <h2 class="text-xl font-semibold text-gray-800"><i class="fas fa-list mr-2"></i>Danh Sách Key Hiện Có</h2>
+                        <button id="refreshBtn" class="bg-gray-100 hover:bg-gray-200 text-gray-800 font-medium py-2 px-4 rounded-lg transition flex items-center">
+                            <i class="fas fa-sync-alt mr-2"></i> Làm Mới
+                        </button>
+                    </div>
+
+                    <!-- Bảng keys (sẽ được điền bằng JavaScript) -->
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">ID</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Key</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Chủ sở hữu</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Trạng Thái</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Lượt Dùng</th>
+                                    <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Hành Động</th>
+                                </tr>
+                            </thead>
+                            <tbody id="keysTableBody" class="divide-y divide-gray-200">
+                                <!-- Dữ liệu sẽ được thêm ở đây bằng JS -->
+                                <tr><td colspan="6" class="py-8 text-center text-gray-500">Đang tải dữ liệu...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <!-- Thông tin dự án -->
+                <div class="mt-6 text-center text-sm text-gray-500">
+                    <p><i class="fas fa-database mr-1"></i> Dữ liệu được lưu trữ trong SQLite database, không mất khi khởi động lại panel.</p>
+                    <p class="mt-1">Panel được thiết kế để deploy lên <strong>Render.com</strong>.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript cho tương tác -->
+    <script>
+        const API_BASE = '/api'; // Sẽ tự động tương thích khi deploy lên cùng domain
+
+        // Hàm chung để gọi API
+        async function callApi(endpoint, method = 'GET', body = null) {
+            const options = { method, headers: {} };
+            if (body) {
+                options.headers['Content-Type'] = 'application/json';
+                options.body = JSON.stringify(body);
+            }
+            const response = await fetch(API_BASE + endpoint, options);
+            return await response.json();
+        }
+
+        // Lấy và hiển thị danh sách keys
+        async function loadKeys() {
+            const tbody = document.getElementById('keysTableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-500"><i class="fas fa-spinner fa-spin mr-2"></i>Đang tải danh sách key...</td></tr>`;
+
+            try {
+                const keys = await callApi('/keys');
+                if (keys.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-gray-500">Chưa có key nào. Hãy thêm key đầu tiên!</td></tr>`;
+                    return;
+                }
+
+                let html = '';
+                keys.forEach(key => {
+                    // Xác định class và text cho trạng thái
+                    let statusClass = 'bg-gray-200 text-gray-800';
+                    let statusText = key.status;
+                    if (key.status === 'active') {
+                        statusClass = 'bg-green-100 text-green-800';
+                        statusText = '<i class="fas fa-check-circle mr-1"></i> Active';
+                    } else if (key.status === 'locked') {
+                        statusClass = 'bg-amber-100 text-amber-800';
+                        statusText = '<i class="fas fa-lock mr-1"></i> Locked';
+                    } else if (key.status === 'deleted') {
+                        statusClass = 'bg-red-100 text-red-800';
+                        statusText = '<i class="fas fa-trash-alt mr-1"></i> Deleted';
+                    }
+
+                    html += `
+                    <tr class="hover:bg-gray-50 transition ${'key-' + key.status} border-l-4">
+                        <td class="py-3 px-4 font-mono text-sm">${key.id}</td>
+                        <td class="py-3 px-4 font-mono font-medium">${key.key}</td>
+                        <td class="py-3 px-4">${key.owner || '<span class="text-gray-400">-</span>'}</td>
+                        <td class="py-3 px-4">
+                            <span class="px-3 py-1 rounded-full text-xs font-medium ${statusClass}">${statusText}</span>
+                        </td>
+                        <td class="py-3 px-4 text-center font-semibold">${key.usage_count}</td>
+                        <td class="py-3 px-4">
+                            <div class="flex space-x-2">
+                                ${key.status !== 'active' ? `<button onclick="resetKey(${key.id})" class="text-green-700 hover:text-green-900 hover:bg-green-50 p-2 rounded transition" title="Reset"><i class="fas fa-redo-alt"></i></button>` : ''}
+                                ${key.status !== 'locked' ? `<button onclick="lockKey(${key.id})" class="text-amber-700 hover:text-amber-900 hover:bg-amber-50 p-2 rounded transition" title="Khóa"><i class="fas fa-lock"></i></button>` : ''}
+                                ${key.status !== 'deleted' ? `<button onclick="deleteKey(${key.id})" class="text-red-700 hover:text-red-900 hover:bg-red-50 p-2 rounded transition" title="Xóa"><i class="fas fa-trash-alt"></i></button>` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                    `;
+                });
+                tbody.innerHTML = html;
+            } catch (error) {
+                tbody.innerHTML = `<tr><td colspan="6" class="py-8 text-center text-red-500"><i class="fas fa-exclamation-triangle mr-2"></i>Lỗi khi tải dữ liệu: ${error.message}</td></tr>`;
+            }
+        }
+
+        // Xử lý form thêm key mới
+        document.getElementById('addKeyForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const keyInput = document.getElementById('keyInput');
+            const ownerInput = document.getElementById('ownerInput');
+
+            const btn = e.target.querySelector('button[type="submit"]');
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> Đang xử lý...';
+            btn.disabled = true;
+
+            try {
+                const result = await callApi('/keys', 'POST', {
+                    key: keyInput.value.trim(),
+                    owner: ownerInput.value.trim() || null
+                });
+                alert('✅ ' + result.message);
+                keyInput.value = '';
+                ownerInput.value = '';
+                loadKeys(); // Làm mới danh sách
+            } catch (error) {
+                alert('❌ Lỗi: ' + (error.error || error.message));
+            } finally {
+                btn.innerHTML = originalText;
+                btn.disabled = false;
+            }
+        });
+
+        // Các hàm hành động
+        async function resetKey(id) {
+            if (confirm('Bạn có chắc muốn reset key này? Lượt dùng sẽ về 0 và trạng thái thành Active.')) {
+                await callApi(`/keys/${id}/reset`, 'PUT');
+                alert('Key đã được reset.');
+                loadKeys();
+            }
+        }
+        async function lockKey(id) {
+            if (confirm('Khóa key này? Key sẽ không thể sử dụng cho đến khi được reset.')) {
+                await callApi(`/keys/${id}/lock`, 'PUT');
+                alert('Key đã bị khóa.');
+                loadKeys();
+            }
+        }
+        async function deleteKey(id) {
+            if (confirm('Đánh dấu key này là đã xóa? Bạn có thể reset để khôi phục sau.')) {
+                await callApi(`/keys/${id}`, 'DELETE');
+                alert('Key đã được đánh dấu là đã xóa.');
+                loadKeys();
+            }
+        }
+
+        // Nút làm mới
+        document.getElementById('refreshBtn').addEventListener('click', loadKeys);
+
+        // Tải danh sách key khi trang được mở
+        window.addEventListener('DOMContentLoaded', loadKeys);
+    </script>
+</body>
+</html>
