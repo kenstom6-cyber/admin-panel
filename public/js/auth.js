@@ -1,6 +1,4 @@
-[file name]: public/js/auth.js
-[file content begin]
-// Authentication helper functions
+// public/js/auth.js - Authentication helper functions
 
 // Check authentication status
 async function checkAuth() {
@@ -111,4 +109,3 @@ window.auth = {
     logout,
     getCurrentAdmin
 };
-[file content end]
