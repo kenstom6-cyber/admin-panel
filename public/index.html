@@ -1,127 +1,835 @@
-<script>
-    document.getElementById('loginForm').addEventListener('submit', async function(e) {
-        e.preventDefault();
-        
-        const username = document.getElementById('username').value;
-        const password = document.getElementById('password').value;
-        const btn = document.getElementById('loginBtn');
-        const btnText = document.getElementById('btnText');
-        const loading = document.getElementById('loading');
-        const debugInfo = document.getElementById('debugInfo');
-        
-        // Show loading
-        btn.disabled = true;
-        btnText.textContent = 'Đang đăng nhập...';
-        loading.classList.remove('hidden');
-        
-        // Clear debug
-        debugInfo.innerHTML = '';
-        debugInfo.classList.remove('hidden');
-        
-        try {
-            console.log('=== LOGIN ATTEMPT ===');
-            console.log('Username:', username);
-            
-            const response = await fetch('/api/auth/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Accept': 'application/json'
-                },
-                credentials: 'include', // QUAN TRỌNG
-                body: JSON.stringify({ username, password })
-            });
-            
-            console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
-            
-            const data = await response.json();
-            console.log('Response data:', data);
-            
-            // Show debug info
-            debugInfo.innerHTML = `
-                <strong>Debug Info:</strong><br>
-                Status: ${response.status}<br>
-                Success: ${data.success}<br>
-                Session ID: ${data.sessionId || 'none'}<br>
-                User: ${data.user ? data.user.username : 'none'}
-            `;
-            
-            if (data.success) {
-                debugInfo.innerHTML += '<br><span class="text-green-600">✓ Server login successful!</span>';
-                
-                // ĐỢI 2 GIÂY rồi kiểm tra session
-                setTimeout(async () => {
-                    try {
-                        console.log('Checking session status...');
-                        
-                        const statusRes = await fetch('/api/auth/status', {
-                            credentials: 'include'
-                        });
-                        
-                        console.log('Status response:', statusRes.status);
-                        const statusData = await statusRes.json();
-                        console.log('Status data:', statusData);
-                        
-                        debugInfo.innerHTML += `<br>Session check: ${statusData.authenticated ? 'Authenticated ✓' : 'Not authenticated ✗'}`;
-                        
-                        if (statusData.authenticated) {
-                            debugInfo.innerHTML += '<br><span class="text-green-600">✓ Redirecting to dashboard...</span>';
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Admin Key Panel</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        .card-hover {
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        .card-hover:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1);
+        }
+        .status-badge {
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+        .status-active { background: #d1fae5; color: #065f46; }
+        .status-locked { background: #fef3c7; color: #92400e; }
+        .status-deleted { background: #fee2e2; color: #991b1b; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Loading Screen -->
+    <div id="loadingScreen" class="fixed inset-0 bg-white flex items-center justify-center z-50">
+        <div class="text-center">
+            <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mb-4"></div>
+            <p class="text-gray-600">Đang tải dashboard...</p>
+        </div>
+    </div>
+
+    <!-- Main Layout -->
+    <div id="mainLayout" class="hidden">
+        <!-- Top Navigation -->
+        <nav class="bg-white shadow-lg">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between h-16">
+                    <!-- Logo -->
+                    <div class="flex items-center">
+                        <div class="flex-shrink-0 flex items-center">
+                            <i class="fas fa-key text-blue-600 text-xl mr-3"></i>
+                            <span class="text-xl font-bold text-gray-800">Key Admin</span>
+                            <span class="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">v2.0</span>
+                        </div>
+                    </div>
+                    
+                    <!-- User Info -->
+                    <div class="flex items-center space-x-4">
+                        <div class="text-right">
+                            <p class="text-sm font-medium text-gray-700" id="userName">Đang tải...</p>
+                            <p class="text-xs text-gray-500" id="userRole">Administrator</p>
+                        </div>
+                        <div class="relative">
+                            <button id="userMenuBtn" class="flex items-center focus:outline-none">
+                                <div class="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                                    <span class="text-white font-bold" id="userInitial">A</span>
+                                </div>
+                                <i class="fas fa-chevron-down ml-2 text-gray-400"></i>
+                            </button>
                             
-                            // Chuyển hướng TRỰC TIẾP không qua kiểm tra
-                            window.location.href = '/dashboard';
-                            
-                        } else {
-                            // Thử debug cookies
-                            const cookieRes = await fetch('/api/debug/cookies', {
-                                credentials: 'include'
-                            });
-                            const cookieData = await cookieRes.json();
-                            console.log('Cookie debug:', cookieData);
-                            
-                            debugInfo.innerHTML += `<br><span class="text-red-600">✗ Session không tồn tại</span>`;
-                            debugInfo.innerHTML += `<br>Cookies: ${cookieData.cookies}`;
-                            
-                            alert('❌ Session không được lưu. Thử đặt cookie thủ công?');
-                            resetButton();
-                        }
+                            <!-- Dropdown Menu -->
+                            <div id="userMenu" class="hidden absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-xl py-1 z-10">
+                                <div class="px-4 py-2 border-b">
+                                    <p class="text-sm font-medium text-gray-900" id="dropdownUserName">Admin</p>
+                                    <p class="text-xs text-gray-500">admin@example.com</p>
+                                </div>
+                                <button onclick="refreshDashboard()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-sync-alt mr-2"></i>Làm mới
+                                </button>
+                                <button onclick="showApiDocs()" class="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                    <i class="fas fa-code mr-2"></i>API Docs
+                                </button>
+                                <div class="border-t mt-1">
+                                    <button onclick="logout()" class="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50">
+                                        <i class="fas fa-sign-out-alt mr-2"></i>Đăng xuất
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            <!-- Welcome Header -->
+            <div class="mb-8">
+                <h1 class="text-3xl font-bold text-gray-900">Dashboard</h1>
+                <p class="text-gray-600 mt-2">Quản lý và theo dõi API Keys của bạn</p>
+            </div>
+
+            <!-- Stats Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                <div class="bg-white rounded-xl shadow card-hover p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Tổng số Keys</p>
+                            <p class="text-3xl font-bold text-gray-900" id="totalKeys">0</p>
+                        </div>
+                        <div class="p-3 bg-blue-100 rounded-lg">
+                            <i class="fas fa-key text-blue-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-chart-line mr-2"></i>
+                            <span id="activeKeys">0</span> active
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow card-hover p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Tổng lượt dùng</p>
+                            <p class="text-3xl font-bold text-gray-900" id="totalUsage">0</p>
+                        </div>
+                        <div class="p-3 bg-green-100 rounded-lg">
+                            <i class="fas fa-chart-bar text-green-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-bolt mr-2"></i>
+                            <span id="todayUsage">0</span> hôm nay
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow card-hover p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Keys Active</p>
+                            <p class="text-3xl font-bold text-gray-900" id="activeCount">0</p>
+                        </div>
+                        <div class="p-3 bg-emerald-100 rounded-lg">
+                            <i class="fas fa-check-circle text-emerald-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-percentage mr-2"></i>
+                            <span id="activePercent">0%</span> tổng số
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-white rounded-xl shadow card-hover p-6">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm text-gray-600">Keys Locked</p>
+                            <p class="text-3xl font-bold text-gray-900" id="lockedCount">0</p>
+                        </div>
+                        <div class="p-3 bg-amber-100 rounded-lg">
+                            <i class="fas fa-lock text-amber-600 text-xl"></i>
+                        </div>
+                    </div>
+                    <div class="mt-4">
+                        <div class="flex items-center text-sm text-gray-500">
+                            <i class="fas fa-exclamation-triangle mr-2"></i>
+                            Cần xem xét
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Left Column - Create Key -->
+                <div class="lg:col-span-1">
+                    <div class="bg-white rounded-xl shadow p-6 sticky top-8">
+                        <h3 class="text-lg font-semibold text-gray-800 mb-4">
+                            <i class="fas fa-plus-circle mr-2 text-blue-600"></i>
+                            Tạo Key Mới
+                        </h3>
                         
-                    } catch (err) {
-                        console.error('Session check error:', err);
-                        // Vẫn thử redirect
-                        window.location.href = '/dashboard';
-                    }
-                }, 2000);
-                
-            } else {
-                alert('❌ ' + (data.error || 'Đăng nhập thất bại'));
-                resetButton();
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Key (để trống để tự động tạo)</label>
+                                <input type="text" id="newKeyInput" 
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                       placeholder="KEY_ABC123... hoặc để trống">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Chủ sở hữu (tùy chọn)</label>
+                                <input type="text" id="newOwnerInput"
+                                       class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                       placeholder="Tên người dùng hoặc ứng dụng">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700 mb-2">Mô tả (tùy chọn)</label>
+                                <textarea id="newDescriptionInput" rows="2"
+                                          class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                                          placeholder="Mô tả mục đích sử dụng"></textarea>
+                            </div>
+                            
+                            <button onclick="createKey()" id="createKeyBtn"
+                                    class="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700 text-white font-semibold py-3 px-4 rounded-lg transition flex items-center justify-center">
+                                <i class="fas fa-plus mr-2"></i>
+                                <span>Tạo Key Mới</span>
+                                <span id="createKeyLoading" class="hidden ml-2">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                </span>
+                            </button>
+                            
+                            <div class="mt-6 pt-6 border-t border-gray-200">
+                                <h4 class="text-sm font-medium text-gray-700 mb-3">
+                                    <i class="fas fa-bolt mr-2"></i>Quick Actions
+                                </h4>
+                                <div class="grid grid-cols-2 gap-2">
+                                    <button onclick="generateRandomKey()" class="px-4 py-2 bg-blue-100 hover:bg-blue-200 text-blue-700 rounded-lg text-sm transition">
+                                        <i class="fas fa-random mr-1"></i> Random Key
+                                    </button>
+                                    <button onclick="refreshKeys()" class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-lg text-sm transition">
+                                        <i class="fas fa-sync-alt mr-1"></i> Refresh
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column - Keys List -->
+                <div class="lg:col-span-2">
+                    <div class="bg-white rounded-xl shadow overflow-hidden">
+                        <!-- Header -->
+                        <div class="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
+                            <h3 class="text-lg font-semibold text-gray-800">
+                                <i class="fas fa-list mr-2"></i>
+                                Danh Sách Keys
+                                <span class="ml-2 text-sm font-normal text-gray-500" id="keysCount">(0 keys)</span>
+                            </h3>
+                            
+                            <div class="flex items-center space-x-3">
+                                <div class="relative">
+                                    <input type="text" id="searchInput" 
+                                           placeholder="Tìm kiếm key..."
+                                           class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                                    <i class="fas fa-search absolute left-3 top-2.5 text-gray-400"></i>
+                                </div>
+                                
+                                <select id="filterSelect" 
+                                        class="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm">
+                                    <option value="all">Tất cả</option>
+                                    <option value="active">Active</option>
+                                    <option value="locked">Locked</option>
+                                    <option value="deleted">Deleted</option>
+                                </select>
+                            </div>
+                        </div>
+                        
+                        <!-- Keys Table -->
+                        <div class="overflow-x-auto">
+                            <table class="w-full">
+                                <thead class="bg-gray-50">
+                                    <tr>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">ID</th>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Key</th>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Chủ sở hữu</th>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Trạng thái</th>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Lượt dùng</th>
+                                        <th class="py-3 px-4 text-left text-sm font-semibold text-gray-700">Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="keysTableBody" class="divide-y divide-gray-200">
+                                    <!-- Keys will be loaded here -->
+                                    <tr>
+                                        <td colspan="6" class="py-8 text-center text-gray-500">
+                                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                                            Đang tải danh sách keys...
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                        
+                        <!-- Empty State -->
+                        <div id="emptyState" class="hidden text-center py-12">
+                            <div class="inline-flex items-center justify-center w-16 h-16 bg-gray-100 rounded-full mb-4">
+                                <i class="fas fa-key text-gray-400 text-2xl"></i>
+                            </div>
+                            <h4 class="text-lg font-semibold text-gray-700 mb-2">Chưa có key nào</h4>
+                            <p class="text-gray-500 max-w-sm mx-auto mb-6">
+                                Bắt đầu bằng cách tạo key đầu tiên của bạn. Key sẽ được sử dụng để xác thực API.
+                            </p>
+                            <button onclick="generateRandomKey()" class="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition">
+                                <i class="fas fa-plus mr-2"></i>Tạo Key Đầu Tiên
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <!-- API Info -->
+                    <div class="mt-6 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-3">
+                            <i class="fas fa-code mr-2 text-blue-600"></i>
+                            API Endpoint cho Android Shell
+                        </h4>
+                        <div class="space-y-3">
+                            <div>
+                                <p class="text-sm text-gray-600 mb-2">Validate Key (GET):</p>
+                                <div class="bg-gray-800 text-gray-100 p-3 rounded-lg font-mono text-sm">
+                                    <span class="text-green-400">GET</span> /api/validate/
+                                    <span class="text-amber-300">{your-key}</span>
+                                </div>
+                                <p class="text-xs text-gray-500 mt-1">
+                                    Response: <code class="bg-gray-100 px-2 py-1 rounded">{"valid": true/false, "key": {...}}</code>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script>
+        // Global variables
+        let currentUser = null;
+        let currentToken = null;
+        let allKeys = [];
+        
+        // ========== AUTH FUNCTIONS ==========
+        
+        // Kiểm tra authentication
+        async function checkAuth() {
+            const token = localStorage.getItem('admin_token');
+            const userData = localStorage.getItem('admin_user');
+            
+            if (!token || !userData) {
+                redirectToLogin();
+                return false;
             }
             
-        } catch (error) {
-            console.error('Login error:', error);
-            debugInfo.innerHTML = `<strong>Error:</strong><br>${error.message}`;
-            alert('❌ Lỗi kết nối: ' + error.message);
-            resetButton();
+            try {
+                const response = await fetch('/api/auth/verify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: token })
+                });
+                
+                const data = await response.json();
+                
+                if (data.valid) {
+                    currentToken = token;
+                    currentUser = JSON.parse(userData);
+                    return true;
+                } else {
+                    redirectToLogin();
+                    return false;
+                }
+            } catch (error) {
+                console.error('Auth check error:', error);
+                redirectToLogin();
+                return false;
+            }
         }
         
-        function resetButton() {
-            btn.disabled = false;
-            btnText.textContent = 'Đăng Nhập';
-            loading.classList.add('hidden');
+        // Chuyển hướng đến login
+        function redirectToLogin() {
+            localStorage.removeItem('admin_token');
+            localStorage.removeItem('admin_user');
+            window.location.href = '/';
         }
-    });
-    
-    // Test session trước khi đăng nhập
-    window.addEventListener('load', async () => {
-        try {
-            const res = await fetch('/api/debug/cookies', {
-                credentials: 'include'
+        
+        // Đăng xuất
+        function logout() {
+            if (confirm('Bạn có chắc muốn đăng xuất?')) {
+                localStorage.removeItem('admin_token');
+                localStorage.removeItem('admin_user');
+                window.location.href = '/';
+            }
+        }
+        
+        // ========== DASHBOARD FUNCTIONS ==========
+        
+        // Tải keys từ server
+        async function loadKeys() {
+            try {
+                const response = await fetch('/api/keys', {
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                if (response.status === 401) {
+                    redirectToLogin();
+                    return;
+                }
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    allKeys = data.keys;
+                    updateKeysTable(allKeys);
+                    updateStats(allKeys);
+                } else {
+                    showError('Không thể tải keys: ' + (data.error || 'Unknown error'));
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+        
+        // Cập nhật bảng keys
+        function updateKeysTable(keys) {
+            const tbody = document.getElementById('keysTableBody');
+            const emptyState = document.getElementById('emptyState');
+            const keysCount = document.getElementById('keysCount');
+            
+            if (keys.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.classList.remove('hidden');
+                keysCount.textContent = '(0 keys)';
+                return;
+            }
+            
+            emptyState.classList.add('hidden');
+            keysCount.textContent = `(${keys.length} keys)`;
+            
+            let html = '';
+            
+            keys.forEach(key => {
+                const statusClass = getStatusClass(key.status);
+                const statusText = getStatusText(key.status);
+                const createdDate = new Date(key.created_at).toLocaleDateString('vi-VN');
+                
+                html += `
+                    <tr class="hover:bg-gray-50">
+                        <td class="py-3 px-4">
+                            <span class="font-mono text-sm">${key.id}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="font-mono text-sm">
+                                <code class="bg-gray-100 px-2 py-1 rounded cursor-pointer hover:bg-gray-200" 
+                                      onclick="copyToClipboard('${key.key}')"
+                                      title="Click để copy">
+                                    ${key.key.length > 20 ? key.key.substring(0, 20) + '...' : key.key}
+                                </code>
+                            </div>
+                            ${key.description ? `
+                                <div class="text-xs text-gray-500 mt-1">${key.description}</div>
+                            ` : ''}
+                        </td>
+                        <td class="py-3 px-4">
+                            ${key.owner || '<span class="text-gray-400">-</span>'}
+                        </td>
+                        <td class="py-3 px-4">
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex items-center">
+                                <span class="font-semibold">${key.usage_count}</span>
+                                ${key.usage_limit > 0 ? `
+                                    <div class="ml-2 w-16 bg-gray-200 rounded-full h-1.5">
+                                        <div class="bg-blue-500 h-1.5 rounded-full" 
+                                             style="width: ${Math.min(100, (key.usage_count / key.usage_limit) * 100)}%"></div>
+                                    </div>
+                                ` : ''}
+                            </div>
+                        </td>
+                        <td class="py-3 px-4">
+                            <div class="flex space-x-1">
+                                <button onclick="resetKey(${key.id})" 
+                                        class="p-1.5 text-green-600 hover:bg-green-50 rounded" 
+                                        title="Reset">
+                                    <i class="fas fa-redo text-xs"></i>
+                                </button>
+                                ${key.status !== 'locked' ? `
+                                    <button onclick="lockKey(${key.id})" 
+                                            class="p-1.5 text-amber-600 hover:bg-amber-50 rounded" 
+                                            title="Lock">
+                                        <i class="fas fa-lock text-xs"></i>
+                                    </button>
+                                ` : ''}
+                                ${key.status !== 'deleted' ? `
+                                    <button onclick="deleteKey(${key.id})" 
+                                            class="p-1.5 text-red-600 hover:bg-red-50 rounded" 
+                                            title="Delete">
+                                        <i class="fas fa-trash text-xs"></i>
+                                    </button>
+                                ` : ''}
+                            </div>
+                        </td>
+                    </tr>
+                `;
             });
-            const data = await res.json();
-            console.log('Initial cookies:', data.cookies);
-        } catch (err) {
-            console.log('Cannot get initial cookies:', err.message);
+            
+            tbody.innerHTML = html;
         }
-    });
-</script>
+        
+        // Cập nhật thống kê
+        function updateStats(keys) {
+            const totalKeys = keys.length;
+            const activeKeys = keys.filter(k => k.status === 'active').length;
+            const lockedKeys = keys.filter(k => k.status === 'locked').length;
+            const totalUsage = keys.reduce((sum, k) => sum + k.usage_count, 0);
+            
+            document.getElementById('totalKeys').textContent = totalKeys;
+            document.getElementById('activeKeys').textContent = activeKeys;
+            document.getElementById('activeCount').textContent = activeKeys;
+            document.getElementById('lockedCount').textContent = lockedKeys;
+            document.getElementById('totalUsage').textContent = totalUsage;
+            document.getElementById('todayUsage').textContent = '0'; // Có thể tính toán thêm
+            document.getElementById('activePercent').textContent = totalKeys > 0 ? 
+                Math.round((activeKeys / totalKeys) * 100) + '%' : '0%';
+        }
+        
+        // ========== KEY ACTIONS ==========
+        
+        // Tạo key mới
+        async function createKey() {
+            const keyInput = document.getElementById('newKeyInput');
+            const ownerInput = document.getElementById('newOwnerInput');
+            const descriptionInput = document.getElementById('newDescriptionInput');
+            const btn = document.getElementById('createKeyBtn');
+            const loading = document.getElementById('createKeyLoading');
+            
+            const key = keyInput.value.trim();
+            const owner = ownerInput.value.trim() || null;
+            const description = descriptionInput.value.trim() || null;
+            
+            // Hiển thị loading
+            btn.disabled = true;
+            loading.classList.remove('hidden');
+            
+            try {
+                const response = await fetch('/api/keys', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${currentToken}`
+                    },
+                    body: JSON.stringify({
+                        key: key || 'auto',
+                        owner: owner,
+                        description: description
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    // Clear form
+                    keyInput.value = '';
+                    ownerInput.value = '';
+                    descriptionInput.value = '';
+                    
+                    // Reload keys
+                    await loadKeys();
+                    
+                    // Show success message
+                    showSuccess('Key đã được tạo thành công!');
+                    
+                    // Copy key to clipboard if auto-generated
+                    if (!key) {
+                        copyToClipboard(data.key.key);
+                    }
+                } else {
+                    showError('Lỗi: ' + (data.error || 'Không thể tạo key'));
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            } finally {
+                // Reset button
+                btn.disabled = false;
+                loading.classList.add('hidden');
+            }
+        }
+        
+        // Tạo random key
+        async function generateRandomKey() {
+            document.getElementById('newKeyInput').value = '';
+            document.getElementById('newOwnerInput').focus();
+            await createKey();
+        }
+        
+        // Reset key
+        async function resetKey(keyId) {
+            if (!confirm('Reset key này về trạng thái active và đặt lượt dùng về 0?')) return;
+            
+            try {
+                const response = await fetch(`/api/keys/${keyId}/reset`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await loadKeys();
+                    showSuccess('Key đã được reset');
+                } else {
+                    showError('Lỗi: ' + (data.error || 'Không thể reset key'));
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+        
+        // Lock key
+        async function lockKey(keyId) {
+            if (!confirm('Khóa key này? Key sẽ không thể sử dụng cho đến khi được reset.')) return;
+            
+            try {
+                const response = await fetch(`/api/keys/${keyId}/lock`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await loadKeys();
+                    showSuccess('Key đã bị khóa');
+                } else {
+                    showError('Lỗi: ' + (data.error || 'Không thể khóa key'));
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+        
+        // Delete key
+        async function deleteKey(keyId) {
+            if (!confirm('Đánh dấu key này là đã xóa? Bạn có thể reset để khôi phục sau.')) return;
+            
+            try {
+                const response = await fetch(`/api/keys/${keyId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${currentToken}`
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    await loadKeys();
+                    showSuccess('Key đã bị xóa');
+                } else {
+                    showError('Lỗi: ' + (data.error || 'Không thể xóa key'));
+                }
+            } catch (error) {
+                showError('Lỗi kết nối: ' + error.message);
+            }
+        }
+        
+        // Refresh keys
+        async function refreshKeys() {
+            await loadKeys();
+            showSuccess('Danh sách keys đã được làm mới');
+        }
+        
+        // Refresh dashboard
+        async function refreshDashboard() {
+            await loadKeys();
+            showSuccess('Dashboard đã được làm mới');
+        }
+        
+        // ========== HELPER FUNCTIONS ==========
+        
+        function getStatusClass(status) {
+            switch(status) {
+                case 'active': return 'status-active';
+                case 'locked': return 'status-locked';
+                case 'deleted': return 'status-deleted';
+                default: return 'status-active';
+            }
+        }
+        
+        function getStatusText(status) {
+            switch(status) {
+                case 'active': return 'Active';
+                case 'locked': return 'Locked';
+                case 'deleted': return 'Deleted';
+                default: return status;
+            }
+        }
+        
+        async function copyToClipboard(text) {
+            try {
+                await navigator.clipboard.writeText(text);
+                showSuccess('Đã copy vào clipboard!');
+            } catch (err) {
+                showError('Lỗi khi copy: ' + err.message);
+            }
+        }
+        
+        function showSuccess(message) {
+            showNotification(message, 'success');
+        }
+        
+        function showError(message) {
+            showNotification(message, 'error');
+        }
+        
+        function showNotification(message, type = 'info') {
+            // Remove existing notification
+            const existing = document.querySelector('.notification');
+            if (existing) existing.remove();
+            
+            // Create notification
+            const notification = document.createElement('div');
+            notification.className = `notification fixed top-4 right-4 px-6 py-4 rounded-lg shadow-lg text-white z-50 transform transition-all duration-300 ${
+                type === 'success' ? 'bg-green-500' : 
+                type === 'error' ? 'bg-red-500' : 
+                'bg-blue-500'
+            }`;
+            
+            notification.innerHTML = `
+                <div class="flex items-center">
+                    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-triangle' : 'info-circle'} mr-3"></i>
+                    <span>${message}</span>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto remove
+            setTimeout(() => {
+                notification.style.opacity = '0';
+                notification.style.transform = 'translateX(100px)';
+                setTimeout(() => notification.remove(), 300);
+            }, 3000);
+        }
+        
+        function showApiDocs() {
+            alert('API Documentation:\n\n' +
+                  'GET /api/validate/{key} - Validate key\n' +
+                  'GET /api/key-info/{key} - Get key info\n' +
+                  'GET /api/keys - Get all keys (admin)\n' +
+                  'POST /api/keys - Create key (admin)\n' +
+                  'POST /api/keys/{id}/reset - Reset key (admin)\n' +
+                  'POST /api/keys/{id}/lock - Lock key (admin)\n' +
+                  'DELETE /api/keys/{id} - Delete key (admin)');
+        }
+        
+        // ========== INITIALIZATION ==========
+        
+        async function initializeDashboard() {
+            // Check authentication
+            const isAuthenticated = await checkAuth();
+            
+            if (!isAuthenticated) {
+                return;
+            }
+            
+            // Update user info
+            document.getElementById('userName').textContent = currentUser.username;
+            document.getElementById('userInitial').textContent = currentUser.username.charAt(0).toUpperCase();
+            document.getElementById('dropdownUserName').textContent = currentUser.username;
+            
+            // Load keys
+            await loadKeys();
+            
+            // Setup event listeners
+            setupEventListeners();
+            
+            // Hide loading, show main layout
+            setTimeout(() => {
+                document.getElementById('loadingScreen').classList.add('hidden');
+                document.getElementById('mainLayout').classList.remove('hidden');
+            }, 500);
+        }
+        
+        function setupEventListeners() {
+            // User menu toggle
+            document.getElementById('userMenuBtn').addEventListener('click', function() {
+                const menu = document.getElementById('userMenu');
+                menu.classList.toggle('hidden');
+            });
+            
+            // Close menu when clicking outside
+            document.addEventListener('click', function(event) {
+                const menu = document.getElementById('userMenu');
+                const menuBtn = document.getElementById('userMenuBtn');
+                
+                if (!menu.contains(event.target) && !menuBtn.contains(event.target)) {
+                    menu.classList.add('hidden');
+                }
+            });
+            
+            // Search input
+            document.getElementById('searchInput').addEventListener('input', function(e) {
+                const searchTerm = e.target.value.toLowerCase();
+                const filteredKeys = allKeys.filter(key => 
+                    key.key.toLowerCase().includes(searchTerm) ||
+                    (key.owner && key.owner.toLowerCase().includes(searchTerm)) ||
+                    (key.description && key.description.toLowerCase().includes(searchTerm))
+                );
+                updateKeysTable(filteredKeys);
+            });
+            
+            // Filter select
+            document.getElementById('filterSelect').addEventListener('change', function(e) {
+                const filter = e.target.value;
+                
+                if (filter === 'all') {
+                    updateKeysTable(allKeys);
+                } else {
+                    const filteredKeys = allKeys.filter(key => key.status === filter);
+                    updateKeysTable(filteredKeys);
+                }
+            });
+            
+            // Enter key to submit form
+            document.getElementById('newKeyInput').addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    createKey();
+                }
+            });
+        }
+        
+        // Start dashboard
+        window.addEventListener('DOMContentLoaded', initializeDashboard);
+    </script>
+</body>
+</html>
