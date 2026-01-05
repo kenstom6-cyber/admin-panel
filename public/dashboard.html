@@ -50,6 +50,55 @@
             100% { transform: rotate(360deg); }
         }
         
+        /* Login Form */
+        .login-container {
+            max-width: 400px;
+            margin: 100px auto;
+            padding: 30px;
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+        }
+        
+        .login-container h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            color: #333;
+        }
+        
+        .login-form input {
+            width: 100%;
+            padding: 12px;
+            margin-bottom: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+        }
+        
+        .login-form button {
+            width: 100%;
+            padding: 12px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        
+        .login-form button:hover {
+            background: #5a67d8;
+        }
+        
+        .error-message {
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 10px;
+            border-radius: 5px;
+            margin-bottom: 15px;
+            display: none;
+        }
+        
         /* Navbar */
         .navbar {
             background: white;
@@ -81,6 +130,19 @@
             display: flex;
             align-items: center;
             gap: 15px;
+        }
+        
+        .refresh-btn {
+            background: none;
+            border: none;
+            color: #667eea;
+            font-size: 16px;
+            cursor: pointer;
+            padding: 5px;
+        }
+        
+        .refresh-btn:hover {
+            color: #5a67d8;
         }
         
         .username {
@@ -293,6 +355,9 @@
             color: white;
             z-index: 1000;
             animation: slideIn 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         }
         
         @keyframes slideIn {
@@ -303,6 +368,41 @@
         .notification.success { background: #10b981; }
         .notification.error { background: #ef4444; }
         .notification.info { background: #3b82f6; }
+        
+        /* Modal */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            min-width: 300px;
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .modal h3 {
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+            justify-content: flex-end;
+        }
     </style>
 </head>
 <body>
@@ -310,7 +410,30 @@
     <div id="loadingScreen">
         <div class="loader">
             <div class="spinner"></div>
-            <p>Đang tải dashboard...</p>
+            <p>Đang kiểm tra đăng nhập...</p>
+        </div>
+    </div>
+
+    <!-- Login Form (hidden initially) -->
+    <div id="loginContainer" style="display: none;">
+        <div class="login-container">
+            <h2><i class="fas fa-server"></i> Admin Login</h2>
+            
+            <div class="error-message" id="loginError">
+                Sai tên đăng nhập hoặc mật khẩu
+            </div>
+            
+            <form class="login-form" onsubmit="handleLogin(event)">
+                <input type="text" id="loginUsername" placeholder="Username" required>
+                <input type="password" id="loginPassword" placeholder="Password" required>
+                <button type="submit">
+                    <i class="fas fa-sign-in-alt"></i> Đăng nhập
+                </button>
+            </form>
+            
+            <p style="text-align: center; margin-top: 20px; color: #666; font-size: 14px;">
+                Vui lòng liên hệ quản trị viên để lấy thông tin đăng nhập
+            </p>
         </div>
     </div>
 
@@ -324,6 +447,9 @@
             </div>
             
             <div class="user-info">
+                <button class="refresh-btn" onclick="refreshAllData()" title="Refresh">
+                    <i class="fas fa-sync-alt"></i>
+                </button>
                 <span class="username" id="username">Admin</span>
                 <button class="logout-btn" onclick="logout()">
                     <i class="fas fa-sign-out-alt"></i> Đăng xuất
@@ -482,6 +608,18 @@ fi</pre>
         </div>
     </div>
 
+    <!-- Confirmation Modal -->
+    <div id="confirmModal" class="modal">
+        <div class="modal-content">
+            <h3 id="confirmTitle">Xác nhận</h3>
+            <p id="confirmMessage">Bạn có chắc chắn muốn thực hiện hành động này?</p>
+            <div class="modal-buttons">
+                <button class="btn" onclick="closeModal()">Hủy</button>
+                <button class="btn btn-primary" id="confirmButton">Xác nhận</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Notification Container -->
     <div id="notificationContainer"></div>
 
@@ -493,27 +631,94 @@ fi</pre>
         let currentTab = 'server';
         let serverKeys = [];
         let userKeys = [];
+        let confirmCallback = null;
+
+        // ========== MODAL FUNCTIONS ==========
+        function showModal(title, message, callback) {
+            document.getElementById('confirmTitle').textContent = title;
+            document.getElementById('confirmMessage').textContent = message;
+            document.getElementById('confirmModal').style.display = 'flex';
+            confirmCallback = callback;
+        }
+
+        function closeModal() {
+            document.getElementById('confirmModal').style.display = 'none';
+            confirmCallback = null;
+        }
+
+        document.getElementById('confirmButton').onclick = function() {
+            if (confirmCallback) {
+                confirmCallback();
+            }
+            closeModal();
+        };
 
         // ========== AUTH FUNCTIONS ==========
         function checkLogin() {
-            // Đơn giản: chỉ kiểm tra một flag
+            // Kiểm tra thông tin đăng nhập đơn giản
             const isLoggedIn = localStorage.getItem('admin_logged_in') === 'true';
             
-            if (!isLoggedIn) {
-                // Nếu chưa đăng nhập, chuyển về trang chủ
-                window.location.href = '/';
+            if (isLoggedIn) {
+                // Đã đăng nhập, hiển thị dashboard
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                initDashboard();
+                return true;
+            } else {
+                // Chưa đăng nhập, hiển thị form login
+                document.getElementById('loadingScreen').style.display = 'none';
+                document.getElementById('loginContainer').style.display = 'block';
                 return false;
             }
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
             
-            return true;
+            const username = document.getElementById('loginUsername').value;
+            const password = document.getElementById('loginPassword').value;
+            
+            // Đơn giản: kiểm tra với thông tin mặc định
+            // Trong thực tế, bạn nên gọi API để kiểm tra
+            const validUsername = 'admin';
+            const validPassword = 'admin123'; // Đổi mật khẩu này trong môi trường thật
+            
+            if (username === validUsername && password === validPassword) {
+                // Đăng nhập thành công
+                localStorage.setItem('admin_logged_in', 'true');
+                localStorage.setItem('admin_username', username);
+                
+                // Ẩn form login và hiển thị dashboard
+                document.getElementById('loginContainer').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+                
+                // Khởi tạo dashboard
+                initDashboard();
+                
+                showNotification('✅ Đăng nhập thành công!', 'success');
+            } else {
+                // Hiển thị lỗi
+                document.getElementById('loginError').style.display = 'block';
+                document.getElementById('loginPassword').value = '';
+                document.getElementById('loginPassword').focus();
+            }
         }
 
         function logout() {
-            if (confirm('Bạn có chắc muốn đăng xuất?')) {
-                // Xóa tất cả dữ liệu đăng nhập
-                localStorage.clear();
-                window.location.href = '/';
-            }
+            showModal(
+                'Đăng xuất',
+                'Bạn có chắc muốn đăng xuất?',
+                function() {
+                    localStorage.clear();
+                    document.getElementById('mainContent').style.display = 'none';
+                    document.getElementById('loginContainer').style.display = 'block';
+                    document.getElementById('loginUsername').value = '';
+                    document.getElementById('loginPassword').value = '';
+                    document.getElementById('loginError').style.display = 'none';
+                    showNotification('Đã đăng xuất', 'info');
+                }
+            );
         }
 
         // ========== NOTIFICATION SYSTEM ==========
@@ -523,7 +728,7 @@ fi</pre>
             notification.className = `notification ${type}`;
             notification.innerHTML = `
                 <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'}"></i>
-                ${message}
+                <span>${message}</span>
             `;
             
             container.appendChild(notification);
@@ -535,46 +740,152 @@ fi</pre>
             }, 5000);
         }
 
+        // ========== HELPER FUNCTIONS ==========
+        function getStatusClass(status) {
+            switch (status) {
+                case 'active': return 'status-active';
+                case 'locked': return 'status-locked';
+                case 'expired': return 'status-expired';
+                default: return 'status-locked';
+            }
+        }
+
+        function getStatusText(status) {
+            switch (status) {
+                case 'active': return 'Active';
+                case 'locked': return 'Locked';
+                case 'expired': return 'Expired';
+                default: return 'Unknown';
+            }
+        }
+
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text)
+                .then(() => showNotification('✅ Key đã được copy vào clipboard', 'success'))
+                .catch(err => showNotification('❌ Lỗi copy key', 'error'));
+        }
+
+        // ========== TAB MANAGEMENT ==========
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.getAttribute('onclick').includes(tabName)) {
+                    btn.classList.add('active');
+                }
+            });
+            
+            // Update tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.remove('active');
+                if (content.id === 'tab' + capitalizeFirstLetter(tabName)) {
+                    content.classList.add('active');
+                }
+            });
+            
+            currentTab = tabName;
+            
+            // Load data for specific tabs if needed
+            if (tabName === 'server') {
+                loadServerKeys();
+            } else if (tabName === 'user') {
+                loadUserKeys();
+            }
+        }
+
+        function capitalizeFirstLetter(string) {
+            return string.charAt(0).toUpperCase() + string.slice(1);
+        }
+
         // ========== DATA LOADING ==========
         async function loadServerKeys() {
             try {
-                const response = await fetch('/api/server-keys');
-                const data = await response.json();
+                // Simulate API call (replace with real API)
+                // const response = await fetch('/api/server-keys');
+                // const data = await response.json();
                 
-                if (data.success) {
-                    serverKeys = data.keys || [];
+                // For demo purposes, create mock data
+                await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
+                
+                const mockData = {
+                    success: true,
+                    keys: [
+                        {
+                            id: 1,
+                            key: 'sk_test_1234567890abcdefghijklmnop',
+                            name: 'Production Server',
+                            status: 'active',
+                            usage_count: 150,
+                            expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
+                        },
+                        {
+                            id: 2,
+                            key: 'sk_test_0987654321zyxwvutsrqponmlk',
+                            name: 'Development Server',
+                            status: 'locked',
+                            usage_count: 45,
+                            expires_at: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)
+                        }
+                    ]
+                };
+                
+                if (mockData.success) {
+                    serverKeys = mockData.keys || [];
                     renderServerKeys();
                 }
             } catch (error) {
                 console.error('Error loading server keys:', error);
+                showNotification('❌ Lỗi tải server keys', 'error');
+                
+                // Show empty state
+                document.getElementById('serverKeysBody').innerHTML = `
+                    <tr>
+                        <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; margin-bottom: 15px; display: block; color: #f59e0b;"></i>
+                            <p>Lỗi tải dữ liệu</p>
+                            <button onclick="loadServerKeys()" class="btn" style="margin-top: 10px;">Thử lại</button>
+                        </td>
+                    </tr>
+                `;
             }
         }
 
         async function loadUserKeys() {
             try {
-                const response = await fetch('/api/user-keys');
-                const data = await response.json();
+                // Simulate API call (replace with real API)
+                await new Promise(resolve => setTimeout(resolve, 500)); // Simulate delay
                 
-                if (data.success) {
-                    userKeys = data.keys || [];
+                const mockData = {
+                    success: true,
+                    keys: [
+                        {
+                            id: 1,
+                            key: 'uk_user_1234567890abcdefghijklmnop',
+                            user_id: 'user001',
+                            status: 'active',
+                            usage_count: 25,
+                            created_at: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000)
+                        }
+                    ]
+                };
+                
+                if (mockData.success) {
+                    userKeys = mockData.keys || [];
                     renderUserKeys();
                 }
             } catch (error) {
                 console.error('Error loading user keys:', error);
+                showNotification('❌ Lỗi tải user keys', 'error');
             }
         }
 
         async function loadStats() {
             try {
-                const response = await fetch('/api/stats');
-                const data = await response.json();
+                // Simulate API call
+                await new Promise(resolve => setTimeout(resolve, 300));
                 
-                if (data.success) {
-                    document.getElementById('serverKeysCount').textContent = data.stats.server_keys || 0;
-                    document.getElementById('userKeysCount').textContent = data.stats.user_keys || 0;
-                    document.getElementById('totalUsage').textContent = '0'; // Tính toán sau
-                    document.getElementById('activeKeys').textContent = '0'; // Tính toán sau
-                }
+                // Update stats from local data
+                updateStats();
             } catch (error) {
                 console.error('Error loading stats:', error);
             }
@@ -594,13 +905,15 @@ fi</pre>
                         </td>
                     </tr>
                 `;
+                updateStats();
                 return;
             }
             
             let html = '';
             serverKeys.forEach(key => {
-                const statusClass = getStatusClass(key.status);
-                const statusText = getStatusText(key.status);
+                const isExpired = key.expires_at && new Date(key.expires_at) < new Date();
+                const finalStatus = isExpired ? 'expired' : key.status;
+                const isLocked = key.status === 'locked';
                 
                 html += `
                     <tr>
@@ -614,7 +927,9 @@ fi</pre>
                         </td>
                         <td>${key.name || '-'}</td>
                         <td>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <span class="status-badge ${getStatusClass(finalStatus)}">
+                                ${getStatusText(finalStatus)}
+                            </span>
                         </td>
                         <td>${key.usage_count || 0}</td>
                         <td>${key.expires_at ? new Date(key.expires_at).toLocaleDateString('vi-VN') : 'Never'}</td>
@@ -622,8 +937,8 @@ fi</pre>
                             <button class="action-btn" onclick="resetKey(${key.id}, 'server')" title="Reset">
                                 <i class="fas fa-redo" style="color: #10b981;"></i>
                             </button>
-                            <button class="action-btn" onclick="lockKey(${key.id}, 'server')" title="Lock">
-                                <i class="fas fa-lock" style="color: #f59e0b;"></i>
+                            <button class="action-btn" onclick="toggleLockKey(${key.id}, 'server')" title="${isLocked ? 'Unlock' : 'Lock'}">
+                                <i class="fas ${isLocked ? 'fa-unlock' : 'fa-lock'}" style="color: #f59e0b;"></i>
                             </button>
                             <button class="action-btn" onclick="deleteKey(${key.id}, 'server')" title="Delete">
                                 <i class="fas fa-trash" style="color: #ef4444;"></i>
@@ -634,6 +949,7 @@ fi</pre>
             });
             
             tbody.innerHTML = html;
+            updateStats();
         }
 
         function renderUserKeys() {
@@ -654,9 +970,6 @@ fi</pre>
             
             let html = '';
             userKeys.forEach(key => {
-                const statusClass = getStatusClass(key.status);
-                const statusText = getStatusText(key.status);
-                
                 html += `
                     <tr>
                         <td>${key.id}</td>
@@ -669,7 +982,7 @@ fi</pre>
                         </td>
                         <td>${key.user_id || '-'}</td>
                         <td>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
+                            <span class="status-badge ${getStatusClass(key.status)}">${getStatusText(key.status)}</span>
                         </td>
                         <td>${key.usage_count || 0}</td>
                         <td>${new Date(key.created_at).toLocaleDateString('vi-VN')}</td>
@@ -688,395 +1001,203 @@ fi</pre>
             tbody.innerHTML = html;
         }
 
+        // ========== STATS FUNCTIONS ==========
+        function updateStats() {
+            // Calculate total usage
+            const totalUsage = [...serverKeys, ...userKeys].reduce((sum, key) => {
+                return sum + (key.usage_count || 0);
+            }, 0);
+            
+            // Calculate active keys
+            const activeKeys = [...serverKeys, ...userKeys].filter(key => {
+                if (key.status !== 'active') return false;
+                if (key.expires_at && new Date(key.expires_at) < new Date()) return false;
+                return true;
+            }).length;
+            
+            document.getElementById('serverKeysCount').textContent = serverKeys.length;
+            document.getElementById('userKeysCount').textContent = userKeys.length;
+            document.getElementById('totalUsage').textContent = totalUsage;
+            document.getElementById('activeKeys').textContent = activeKeys;
+        }
+
         // ========== KEY ACTIONS ==========
         async function generateServerKey() {
             const name = document.getElementById('keyName').value.trim();
             const description = document.getElementById('keyDescription').value.trim();
             const expires = document.getElementById('keyExpires').value;
             
+            if (!expires || parseInt(expires) < 1) {
+                showNotification('❌ Vui lòng nhập số ngày hợp lệ', 'error');
+                return;
+            }
+            
             try {
-                const response = await fetch('/api/server-key/generate', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({
-                        name: name || null,
-                        description: description || null,
-                        expires_in_days: parseInt(expires)
-                    })
-                });
+                // Simulate API call
+                showNotification('🔄 Đang tạo key...', 'info');
                 
-                const data = await response.json();
+                await new Promise(resolve => setTimeout(resolve, 1000));
                 
-                if (data.success) {
-                    showNotification('✅ Server key đã được tạo!', 'success');
-                    
-                    // Clear form
-                    document.getElementById('keyName').value = '';
-                    document.getElementById('keyDescription').value = '';
-                    
-                    // Reload data
-                    await loadServerKeys();
-                    await loadStats();
-                    
-                    // Switch to server keys tab
-                    switchTab('server');
-                    
-                    // Copy key to clipboard
-                    copyToClipboard(data.server_key);
-                    
-                } else {
-                    showNotification('❌ ' + (data.error || 'Failed to generate key'), 'error');
-                }
+                // Generate mock key
+                const mockKey = 'sk_live_' + Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+                
+                showNotification('✅ Server key đã được tạo!', 'success');
+                
+                // Clear form
+                document.getElementById('keyName').value = '';
+                document.getElementById('keyDescription').value = '';
+                
+                // Add to local data (in real app, this would come from API response)
+                const newKey = {
+                    id: serverKeys.length + 1,
+                    key: mockKey,
+                    name: name || null,
+                    status: 'active',
+                    usage_count: 0,
+                    expires_at: new Date(Date.now() + parseInt(expires) * 24 * 60 * 60 * 1000)
+                };
+                
+                serverKeys.push(newKey);
+                renderServerKeys();
+                
+                // Switch to server keys tab
+                switchTab('server');
+                
+                // Copy key to clipboard
+                copyToClipboard(mockKey);
+                
             } catch (error) {
-                showNotification('❌ Lỗi kết nối', 'error');
+                showNotification('❌ Lỗi tạo key', 'error');
             }
         }
 
         async function resetKey(id, type) {
-            if (!confirm(`Reset ${type} key này?`)) return;
-            
-            try {
-                const endpoint = type === 'server' ? `/api/server-key/${id}/reset` : `/api/key/${id}/reset`;
-                const response = await fetch(endpoint, { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification('✅ Key đã được reset', 'success');
-                    
-                    if (type === 'server') {
-                        await loadServerKeys();
-                    } else {
-                        await loadUserKeys();
+            showModal(
+                'Reset Key',
+                `Bạn có chắc muốn reset ${type} key này? Lịch sử sử dụng sẽ được đặt về 0.`,
+                async function() {
+                    try {
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        if (type === 'server') {
+                            const keyIndex = serverKeys.findIndex(k => k.id === id);
+                            if (keyIndex !== -1) {
+                                serverKeys[keyIndex].usage_count = 0;
+                            }
+                            renderServerKeys();
+                        } else {
+                            const keyIndex = userKeys.findIndex(k => k.id === id);
+                            if (keyIndex !== -1) {
+                                userKeys[keyIndex].usage_count = 0;
+                            }
+                            renderUserKeys();
+                        }
+                        
+                        showNotification('✅ Key đã được reset', 'success');
+                    } catch (error) {
+                        showNotification('❌ Lỗi reset key', 'error');
                     }
-                    
-                    await loadStats();
                 }
-            } catch (error) {
-                showNotification('❌ Lỗi reset key', 'error');
-            }
+            );
         }
 
-        async function lockKey(id, type) {
-            if (!confirm(`Lock ${type} key này?`)) return;
+        async function toggleLockKey(id, type) {
+            const key = serverKeys.find(k => k.id === id);
+            if (!key) return;
             
-            try {
-                const response = await fetch(`/api/server-key/${id}/lock`, { method: 'POST' });
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification('✅ Key đã bị khóa', 'success');
-                    await loadServerKeys();
-                    await loadStats();
+            const action = key.status === 'locked' ? 'unlock' : 'lock';
+            const actionText = key.status === 'locked' ? 'mở khóa' : 'khóa';
+            
+            showModal(
+                `${action === 'lock' ? 'Lock' : 'Unlock'} Key`,
+                `Bạn có chắc muốn ${actionText} key này?`,
+                async function() {
+                    try {
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        key.status = action === 'lock' ? 'locked' : 'active';
+                        renderServerKeys();
+                        
+                        showNotification(`✅ Key đã được ${actionText}`, 'success');
+                    } catch (error) {
+                        showNotification('❌ Lỗi thao tác với key', 'error');
+                    }
                 }
-            } catch (error) {
-                showNotification('❌ Lỗi khóa key', 'error');
-            }
+            );
         }
 
         async function deleteKey(id, type) {
-            if (!confirm(`Xóa ${type} key này?`)) return;
-            
-            try {
-                const response = await fetch(`/api/key/${id}`, { 
-                    method: 'DELETE',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-// ========== HELPER FUNCTIONS ==========
-function getStatusClass(status) {
-    switch (status) {
-        case 'active': return 'status-active';
-        case 'locked': return 'status-locked';
-        case 'expired': return 'status-expired';
-        default: return 'status-locked';
-    }
-}
-
-function getStatusText(status) {
-    switch (status) {
-        case 'active': return 'Active';
-        case 'locked': return 'Locked';
-        case 'expired': return 'Expired';
-        default: return 'Unknown';
-    }
-}
-
-function copyToClipboard(text) {
-    navigator.clipboard.writeText(text)
-        .then(() => showNotification('✅ Key đã được copy vào clipboard', 'success'))
-        .catch(err => showNotification('❌ Lỗi copy key', 'error'));
-}
-
-// ========== TAB MANAGEMENT ==========
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-btn').forEach(btn => {
-        btn.classList.remove('active');
-        if (btn.getAttribute('onclick').includes(tabName)) {
-            btn.classList.add('active');
+            showModal(
+                'Xóa Key',
+                `Bạn có chắc muốn xóa ${type} key này? Hành động này không thể hoàn tác!`,
+                async function() {
+                    try {
+                        // Simulate API call
+                        await new Promise(resolve => setTimeout(resolve, 500));
+                        
+                        if (type === 'server') {
+                            serverKeys = serverKeys.filter(k => k.id !== id);
+                            renderServerKeys();
+                        } else {
+                            userKeys = userKeys.filter(k => k.id !== id);
+                            renderUserKeys();
+                        }
+                        
+                        showNotification('✅ Key đã được xóa', 'success');
+                    } catch (error) {
+                        showNotification('❌ Lỗi xóa key', 'error');
+                    }
+                }
+            );
         }
-    });
-    
-    // Update tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        content.classList.remove('active');
-        if (content.id === 'tab' + capitalizeFirstLetter(tabName)) {
-            content.classList.add('active');
+
+        // ========== REFRESH FUNCTION ==========
+        async function refreshAllData() {
+            showNotification('🔄 Đang làm mới dữ liệu...', 'info');
+            await Promise.all([
+                loadStats(),
+                loadServerKeys(),
+                loadUserKeys()
+            ]);
+            showNotification('✅ Dữ liệu đã được làm mới', 'success');
         }
-    });
-    
-    currentTab = tabName;
-    
-    // Load data for specific tabs if needed
-    if (tabName === 'server') {
-        loadServerKeys();
-    } else if (tabName === 'user') {
-        loadUserKeys();
-    }
-}
 
-function capitalizeFirstLetter(string) {
-    return string.charAt(0).toUpperCase() + string.slice(1);
-}
-
-// ========== INITIALIZATION ==========
-async function initDashboard() {
-    // Check login first
-    if (!checkLogin()) return;
-    
-    // Show loading screen for 2 seconds (simulate loading)
-    setTimeout(async () => {
-        // Hide loading screen
-        document.getElementById('loadingScreen').style.display = 'none';
-        
-        // Show main content
-        document.getElementById('mainContent').style.display = 'block';
-        
-        // Load all data
-        await Promise.all([
-            loadStats(),
-            loadServerKeys(),
-            loadUserKeys()
-        ]);
-        
-        // Update username from localStorage
-        const savedUsername = localStorage.getItem('admin_username');
-        if (savedUsername) {
-            document.getElementById('username').textContent = savedUsername;
-        }
-        
-        showNotification('✅ Dashboard đã được tải', 'success');
-    }, 2000);
-}
-
-// Thêm hàm deleteKey còn thiếu
-async function deleteKey(id, type) {
-    if (!confirm(`Xóa ${type} key này? Hành động này không thể hoàn tác!`)) return;
-    
-    try {
-        const endpoint = type === 'server' ? `/api/server-key/${id}` : `/api/user-key/${id}`;
-        const response = await fetch(endpoint, { 
-            method: 'DELETE'
-        });
-        
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification('✅ Key đã được xóa', 'success');
-            
-            // Reload data
-            if (type === 'server') {
-                await loadServerKeys();
-            } else {
-                await loadUserKeys();
+        // ========== INITIALIZATION ==========
+        async function initDashboard() {
+            // Update username
+            const savedUsername = localStorage.getItem('admin_username');
+            if (savedUsername) {
+                document.getElementById('username').textContent = savedUsername;
             }
             
-            await loadStats();
-        } else {
-            showNotification('❌ ' + (data.error || 'Failed to delete key'), 'error');
+            // Load all data
+            await refreshAllData();
         }
-    } catch (error) {
-        console.error('Error deleting key:', error);
-        showNotification('❌ Lỗi xóa key', 'error');
-    }
-}
 
-// Thêm hàm cập nhật thống kê
-function updateStats() {
-    // Tính toán total usage
-    const totalUsage = [...serverKeys, ...userKeys].reduce((sum, key) => {
-        return sum + (key.usage_count || 0);
-    }, 0);
-    
-    // Tính toán active keys
-    const activeKeys = [...serverKeys, ...userKeys].filter(key => 
-        key.status === 'active' && 
-        (!key.expires_at || new Date(key.expires_at) > new Date())
-    ).length;
-    
-    document.getElementById('totalUsage').textContent = totalUsage;
-    document.getElementById('activeKeys').textContent = activeKeys;
-}
+        // ========== START APPLICATION ==========
+        // Check login status when page loads
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(() => {
+                checkLogin();
+            }, 1000); // Show loading screen for 1 second
+        });
 
-// Sửa lại hàm loadStats để gọi updateStats
-async function loadStats() {
-    try {
-        const response = await fetch('/api/stats');
-        const data = await response.json();
-        
-        if (data.success) {
-            document.getElementById('serverKeysCount').textContent = data.stats.server_keys || 0;
-            document.getElementById('userKeysCount').textContent = data.stats.user_keys || 0;
+        // Keyboard shortcuts
+        document.addEventListener('keydown', (e) => {
+            // Ctrl + R để refresh
+            if (e.ctrlKey && e.key === 'r') {
+                e.preventDefault();
+                refreshAllData();
+            }
             
-            // Tính toán các thống kê khác
-            updateStats();
-        }
-    } catch (error) {
-        console.error('Error loading stats:', error);
-        // Hiển thị giá trị mặc định
-        document.getElementById('serverKeysCount').textContent = serverKeys.length;
-        document.getElementById('userKeysCount').textContent = userKeys.length;
-        updateStats();
-    }
-}
-
-// Sửa lại render functions để gọi updateStats
-function renderServerKeys() {
-    const tbody = document.getElementById('serverKeysBody');
-    
-    if (!serverKeys || serverKeys.length === 0) {
-        tbody.innerHTML = `
-            <tr>
-                <td colspan="7" style="text-align: center; padding: 40px; color: #9ca3af;">
-                    <i class="fas fa-server" style="font-size: 48px; margin-bottom: 15px; display: block;"></i>
-                    <p>Chưa có server key nào</p>
-                    <p style="font-size: 14px; margin-top: 5px;">Tạo server key đầu tiên của bạn</p>
-                </td>
-            </tr>
-        `;
-        updateStats();
-        return;
-    }
-    
-    let html = '';
-    serverKeys.forEach(key => {
-        const statusClass = getStatusClass(key.status);
-        const statusText = getStatusText(key.status);
-        const isExpired = key.expires_at && new Date(key.expires_at) < new Date();
-        const finalStatus = isExpired ? 'expired' : key.status;
-        
-        html += `
-            <tr>
-                <td>${key.id}</td>
-                <td>
-                    <code style="background: #f3f4f6; padding: 4px 8px; border-radius: 4px; cursor: pointer;"
-                          onclick="copyToClipboard('${key.key}')"
-                          title="Click để copy">
-                        ${key.key.substring(0, 12)}...
-                    </code>
-                </td>
-                <td>${key.name || '-'}</td>
-                <td>
-                    <span class="status-badge ${getStatusClass(finalStatus)}">
-                        ${getStatusText(finalStatus)}
-                    </span>
-                </td>
-                <td>${key.usage_count || 0}</td>
-                <td>${key.expires_at ? new Date(key.expires_at).toLocaleDateString('vi-VN') : 'Never'}</td>
-                <td>
-                    <button class="action-btn" onclick="resetKey(${key.id}, 'server')" title="Reset">
-                        <i class="fas fa-redo" style="color: #10b981;"></i>
-                    </button>
-                    <button class="action-btn" onclick="lockKey(${key.id}, 'server')" title="${key.status === 'locked' ? 'Unlock' : 'Lock'}">
-                        <i class="fas ${key.status === 'locked' ? 'fa-unlock' : 'fa-lock'}" style="color: #f59e0b;"></i>
-                    </button>
-                    <button class="action-btn" onclick="deleteKey(${key.id}, 'server')" title="Delete">
-                        <i class="fas fa-trash" style="color: #ef4444;"></i>
-                    </button>
-                </td>
-            </tr>
-        `;
-    });
-    
-    tbody.innerHTML = html;
-    updateStats();
-}
-
-// Thêm hàm unlockKey
-async function unlockKey(id, type) {
-    try {
-        const response = await fetch(`/api/server-key/${id}/unlock`, { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification('✅ Key đã được mở khóa', 'success');
-            await loadServerKeys();
-            await loadStats();
-        }
-    } catch (error) {
-        showNotification('❌ Lỗi mở khóa key', 'error');
-    }
-}
-
-// Sửa hàm lockKey để hỗ trợ toggle lock/unlock
-async function lockKey(id, type) {
-    try {
-        const key = serverKeys.find(k => k.id === id);
-        if (!key) return;
-        
-        const action = key.status === 'locked' ? 'unlock' : 'lock';
-        const endpoint = `/api/server-key/${id}/${action}`;
-        
-        const response = await fetch(endpoint, { method: 'POST' });
-        const data = await response.json();
-        
-        if (data.success) {
-            showNotification(`✅ Key đã được ${action === 'lock' ? 'khóa' : 'mở khóa'}`, 'success');
-            await loadServerKeys();
-            await loadStats();
-        }
-    } catch (error) {
-        showNotification('❌ Lỗi thao tác với key', 'error');
-    }
-}
-
-// Thêm hàm refresh data
-async function refreshAllData() {
-    showNotification('🔄 Đang làm mới dữ liệu...', 'info');
-    await Promise.all([
-        loadStats(),
-        loadServerKeys(),
-        loadUserKeys()
-    ]);
-    showNotification('✅ Dữ liệu đã được làm mới', 'success');
-}
-
-// Thêm nút refresh trên navbar (thêm vào HTML)
-// Thêm vào sau .user-info trong navbar:
-/*
-<div style="display: flex; align-items: center; gap: 10px;">
-    <button onclick="refreshAllData()" style="background: none; border: none; cursor: pointer; color: #667eea; padding: 5px;">
-        <i class="fas fa-sync-alt"></i>
-    </button>
-</div>
-*/
-
-// ========== START DASHBOARD ==========
-// Chạy khi trang được tải
-document.addEventListener('DOMContentLoaded', initDashboard);
-
-// Thêm phím tắt
-document.addEventListener('keydown', (e) => {
-    // Ctrl + R để refresh
-    if (e.ctrlKey && e.key === 'r') {
-        e.preventDefault();
-        refreshAllData();
-    }
-    
-    // Escape để đóng notification
-    if (e.key === 'Escape') {
-        document.querySelectorAll('.notification').forEach(n => n.remove());
-    }
-});
+            // Escape để đóng modal và notification
+            if (e.key === 'Escape') {
+                closeModal();
+                document.querySelectorAll('.notification').forEach(n => n.remove());
+            }
+        });
+    </script>
+</body>
+</html>
