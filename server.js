@@ -1,5 +1,4 @@
-[file name]: server.js
-[file content begin]
+// server.js
 require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
@@ -598,4 +597,3 @@ async function startServer() {
 }
 
 startServer();
-[file content end]
