@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Admin Key Panel</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .sidebar {
+            transition: all 0.3s ease;
+        }
+        .stat-card {
+            transition: transform 0.2s ease;
+        }
+        .stat-card:hover {
+            transform: translateY(-5px);
+        }
+        .status-active { border-left-color: #10b981; }
+        .status-locked { border-left-color: #f59e0b; }
+        .status-expired { border-left-color: #ef4444; }
+        .status-pending { border-left-color: #6b7280; }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Sidebar -->
+    <div class="sidebar fixed inset-y-0 left-0 z-50 w-64 bg-gray-900 text-white">
+        <!-- Logo -->
+        <div class="p-6 border-b border-gray-800">
+            <div class="flex items-center space-x-3">
+                <div class="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <i class="fas fa-key text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Key Admin</h1>
+                    <p class="text-xs text-gray-400">v2.0</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Menu -->
+        <nav class="p-4">
+            <div class="space-y-2">
+                <a href="#" onclick="loadDashboard()" class="flex items-center space-x-3 p-3 rounded-lg bg-blue-800 text-white">
+                    <i class="fas fa-tachometer-alt w-5"></i>
+                    <span>Tổng Quan</span>
+                </a>
+                <a href="#" onclick="loadKeyManagement()" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                    <i class="fas fa-key w-5"></i>
+                    <span>Quản Lý Key</span>
+                </a>
+                <a href="#" onclick="loadGenerateKey()" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                    <i class="fas fa-plus-circle w-5"></i>
+                    <span>Tạo Key Mới</span>
+                </a>
+                <a href="#" onclick="loadBatchGenerate()" class="flex items center space-x-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                    <i class="fas fa-copy w-5"></i>
+                    <span>Tạo Hàng Loạt</span>
+                </a>
+                <a href="#" onclick="loadStats()" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                    <i class="fas fa-chart-bar w-5"></i>
+                    <span>Thống Kê</span>
+                </a>
+                <a href="#" onclick="loadApiDocs()" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-gray-800 text-gray-300 hover:text-white transition">
+                    <i class="fas fa-code w-5"></i>
+                    <span>API Documentation</span>
+                </a>
+            </div>
+
+            <!-- Server Info -->
+            <div class="mt-8 pt-6 border-t border-gray-800">
+                <div class="text-xs text-gray-400 space-y-2">
+                    <div class="flex justify-between">
+                        <span>Server:</span>
+                        <span id="serverStatus" class="text-green-400">Online</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>Database:</span>
+                        <span class="text-blue-400">SQLite</span>
+                    </div>
+                    <div class="flex justify-between">
+                        <span>API Calls:</span>
+                        <span id="apiCallCount">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Logout -->
+            <div class="absolute bottom-0 left-0 right-0 p-4 border-t border-gray-800">
+                <button onclick="logout()" class="flex items-center space-x-3 p-3 rounded-lg hover:bg-red-900 text-gray-300 hover:text-white w-full transition">
+                    <i class="fas fa-sign-out-alt w-5"></i>
+                    <span>Đăng Xuất</span>
+                </button>
+            </div>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="ml-64">
+        <!-- Top Bar -->
+        <header class="bg-white shadow">
+            <div class="flex justify-between items-center px-8 py-4">
+                <div>
+                    <h2 class="text-2xl font-bold text-gray-800" id="pageTitle">Tổng Quan Dashboard</h2>
+                    <p class="text-gray-600" id="pageSubtitle">Quản lý và theo dõi API Keys</p>
+                </div>
+                <div class="flex items-center space-x-4">
+                    <div class="relative">
+                        <input type="text" id="globalSearch" placeholder="Tìm kiếm key..." 
+                               class="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none">
+                        <i class="fas fa-search absolute left-3 top-3 text-gray-400"></i>
+                    </div>
+                    <div class="h-10 w-10 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
+                        <span class="font-bold text-white">A</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content Area -->
+        <main class="p-8" id="mainContent">
+            <!-- Nội dung sẽ được tải động bằng JavaScript -->
+            <div class="text-center py-12">
+                <i class="fas fa-spinner fa-spin text-3xl text-blue-500 mb-4"></i>
+                <p class="text-gray-600">Đang tải dữ liệu...</p>
+            </div>
+        </main>
+    </div>
+
+    <!-- JavaScript Files -->
+    <script src="/js/auth.js"></script>
+    <script src="/js/dashboard.js"></script>
+    <script>
+        // Khởi tạo dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            checkAuth();
+            loadDashboard();
+            updateServerStatus();
+        });
+    </script>
+</body>
+</html>
