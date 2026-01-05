@@ -1,0 +1,14 @@
+/* File: public/css/style.css */
+
+.status-active { border-left-color: #10b981; }
+.status-locked { border-left-color: #f59e0b; }
+.status-deleted { border-left-color: #ef4444; }
+.status-expired { border-left-color: #8b5cf6; }
+
+.card-shadow {
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+}
+
+.login-bg {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
